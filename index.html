@@ -84,8 +84,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .sets-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .set-wrap{display:flex;flex-direction:column;gap:3px}
 .set-n{font-size:10px;color:var(--t3);text-align:center}
-.set-in{width:100%;padding:11px 4px;text-align:center;font-family:var(--mono);font-size:16px;font-weight:500;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t1);transition:border-color .15s;-moz-appearance:textfield;-webkit-appearance:none}
-.set-in::-webkit-outer-spin-button,.set-in::-webkit-inner-spin-button{-webkit-appearance:none}
+.set-in{width:100%;padding:11px 4px;text-align:center;font-family:var(--mono);font-size:14px;font-weight:500;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t1);transition:border-color .15s;}
 .set-in:focus{outline:none;border-color:var(--b3);background:var(--s3)}
 .set-in.filled{border-color:rgba(255,255,255,.25)}
 .set-note{width:100%;margin-bottom:10px;padding:8px 10px;font-family:var(--mono);font-size:12px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t2);resize:none}
@@ -165,7 +164,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .chart-ttl{font-family:var(--sans);font-size:16px;font-weight:700;margin-bottom:2px}
 .chart-sub{font-size:11px;color:var(--t3);margin-bottom:14px}
 .chart-wrap{position:relative;height:200px}
-.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.stat-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:12px}
 .stat-box{background:var(--s2);border-radius:8px;padding:10px;text-align:center}
 .stat-val{font-family:var(--sans);font-size:16px;font-weight:700}
 .stat-lbl{font-size:10px;color:var(--t3);margin-top:2px}
@@ -225,6 +224,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
           <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
           <div class="stat-row">
             <div class="stat-box"><div class="stat-val" id="st-max">—</div><div class="stat-lbl">Max kg</div></div>
+            <div class="stat-box"><div class="stat-val" id="st-min">—</div><div class="stat-lbl">Min kg</div></div>
             <div class="stat-box"><div class="stat-val" id="st-sess">—</div><div class="stat-lbl">Sessions</div></div>
             <div class="stat-box"><div class="stat-val" id="st-prog">—</div><div class="stat-lbl">Progress</div></div>
           </div>
@@ -503,7 +503,7 @@ function renderExCard(name, container) {
         ${[1,2,3].map(i=>`
           <div class="set-wrap">
             <div class="set-n">Set ${i}</div>
-            <input class="set-in${v('s'+i)?' filled':''}" type="number" inputmode="decimal" step="0.5"
+            <input class="set-in${v('s'+i)?' filled':''}" type="text" inputmode="decimal"
               id="si-${eid(name)}-${i}" value="${v('s'+i)}" placeholder="${ph(i)}"
               data-name="${esc(name)}" data-field="s${i}">
           </div>`).join('')}
@@ -703,67 +703,198 @@ function loadAsTemplate() {
 }
 
 // ── GRAPH VIEW ────────────────────────────────────────────────────────────────
+
+// Build a canonical name map: lowercase -> canonical (first seen, preserving case)
+function buildNameMap() {
+  const map = {}; // lowercase -> canonical name
+  ['d1','d2','d3'].forEach(day => {
+    Object.keys(histData[day]).forEach(name => {
+      const k = name.toLowerCase();
+      if (!map[k]) map[k] = name;
+    });
+  });
+  sessionRows.forEach(r => {
+    if (!r[3]) return;
+    const k = r[3].toLowerCase();
+    if (!map[k]) map[k] = r[3];
+  });
+  return map;
+}
+
+// Get all history entries for an exercise (case-insensitive, all days + sessions)
+function getAllEntries(canonicalName) {
+  const lc = canonicalName.toLowerCase();
+  const byDate = {}; // date -> {maxKg, minKg, isPartial}
+
+  // From history (all 3 days)
+  ['d1','d2','d3'].forEach(day => {
+    Object.keys(histData[day]).forEach(name => {
+      if (name.toLowerCase() !== lc) return;
+      histData[day][name].forEach(h => {
+        const p = parseWeights(h.raw);
+        if (!p) return;
+        if (!byDate[h.date]) byDate[h.date] = {maxKg:0, minKg:Infinity, isPartial:false};
+        byDate[h.date].maxKg    = Math.max(byDate[h.date].maxKg, p.maxKg);
+        byDate[h.date].minKg    = Math.min(byDate[h.date].minKg, p.minKg);
+        byDate[h.date].isPartial = byDate[h.date].isPartial || p.isPartial;
+      });
+    });
+  });
+
+  // From saved sessions
+  sessionRows.forEach(r => {
+    if (!r[3] || r[3].toLowerCase() !== lc) return;
+    const sets = [r[4],r[5],r[6]].map(v => parseWeights(v||'')).filter(Boolean);
+    if (!sets.length) return;
+    const d = r[1];
+    if (!byDate[d]) byDate[d] = {maxKg:0, minKg:Infinity, isPartial:false};
+    sets.forEach(p => {
+      byDate[d].maxKg    = Math.max(byDate[d].maxKg, p.maxKg);
+      byDate[d].minKg    = Math.min(byDate[d].minKg, p.minKg);
+      byDate[d].isPartial = byDate[d].isPartial || p.isPartial;
+    });
+  });
+
+  const dates = Object.keys(byDate).sort();
+  return dates.map(d => ({date:d, ...byDate[d]}));
+}
+
+// Parse a raw value like "20(6 at 25)" or "80-100-120" or "45"
+// Returns {maxKg, minKg, isPartial} or null
+function parseWeights(raw) {
+  if (!raw || raw==='done') return null;
+  // Check if partial format: number(N at X) — X is attempted/partial weight
+  // e.g. "20(6 at 25)" means working weight 20, tried 25 for 6 reps
+  const partialMatch = raw.match(/(\d+(?:\.\d+)?)\s*\(\s*\d+\s+at\s+(\d+(?:\.\d+)?)\s*\)/i);
+  if (partialMatch) {
+    const base = parseFloat(partialMatch[1]);
+    const attempted = parseFloat(partialMatch[2]);
+    // Extract all base weights (before parentheses) + attempted
+    const baseWeights = [];
+    // Get all dashes-separated main weights
+    const mainPart = raw.split('(')[0];
+    const mainNums = mainPart.match(/\d+(?:\.\d+)?/g);
+    if (mainNums) mainNums.forEach(n => baseWeights.push(parseFloat(n)));
+    const allWeights = [...baseWeights, attempted];
+    return {
+      maxKg: Math.max(...allWeights),
+      minKg: Math.min(...baseWeights.length ? baseWeights : allWeights),
+      isPartial: true
+    };
+  }
+  // Plain numbers and dash-separated: "80-100-120"
+  const nums = raw.replace(/[()]/g,' ').match(/\d+(?:\.\d+)?/g);
+  if (!nums) return null;
+  const vals = nums.map(Number).filter(n => n > 0);
+  if (!vals.length) return null;
+  return { maxKg: Math.max(...vals), minKg: Math.min(...vals), isPartial: false };
+}
+
 function renderGraphList() {
   const c = document.getElementById('graph-ex-list');
   c.innerHTML = '';
   const q = document.getElementById('graph-search').value.toLowerCase();
+  const nameMap = buildNameMap();
   const all = [];
-  ['d1','d2','d3'].forEach(day => {
-    Object.keys(histData[day]).forEach(name => {
-      if (!q||name.toLowerCase().includes(q))
-        all.push({name, day, count:histData[day][name].length});
+  const seen = new Set();
+  Object.values(nameMap).forEach(name => {
+    const lc = name.toLowerCase();
+    if (seen.has(lc)) return;
+    seen.add(lc);
+    if (q && !lc.includes(q)) return;
+    // Count total sessions across all days
+    let count = 0;
+    ['d1','d2','d3'].forEach(day => {
+      Object.keys(histData[day]).forEach(k => {
+        if (k.toLowerCase()===lc) count += histData[day][k].length;
+      });
     });
+    count += sessionRows.filter(r => r[3] && r[3].toLowerCase()===lc).length;
+    all.push({name, count});
   });
-  const sessNames = new Set(sessionRows.map(r=>r[3]));
-  sessNames.forEach(name => {
-    if (!all.find(x=>x.name===name) && (!q||name.toLowerCase().includes(q))) {
-      const day = sessionRows.find(r=>r[3]===name)?.[2]||'';
-      all.push({name, day, count:0});
-    }
-  });
-  all.sort((a,b)=>a.name.localeCompare(b.name)).forEach(x => {
+  all.sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase())).forEach(x => {
     const div = document.createElement('div');
     div.className = 'graph-ex-item';
-    div.innerHTML = `<div><div class="graph-ex-nm">${x.name}</div><span class="graph-day-tag ${x.day}">${x.day.toUpperCase()}</span></div><div style="color:var(--t3);font-size:11px">${x.count} sessions ▶</div>`;
-    div.onclick = () => showGraph(x.name, x.day);
+    div.innerHTML = `<div><div class="graph-ex-nm">${x.name}</div></div><div style="color:var(--t3);font-size:11px">${x.count} sessions ▶</div>`;
+    div.onclick = () => showGraph(x.name);
     c.appendChild(div);
   });
 }
+
 function filterGraphList() { renderGraphList(); }
 function backToGraphList() {
   document.getElementById('graph-list-view').style.display='block';
   document.getElementById('graph-detail').style.display='none';
 }
-function showGraph(exName, dayKey) {
+
+function showGraph(exName) {
   document.getElementById('graph-list-view').style.display='none';
   document.getElementById('graph-detail').style.display='block';
   document.getElementById('gd-name').textContent = exName;
-  document.getElementById('gd-sub').textContent  = 'Max weight per session';
-  const byDate = {};
-  (histData[dayKey]?.[exName]||[]).forEach(h => {
-    const mx = parseMax(h.raw);
-    if (mx!==null) byDate[h.date] = Math.max(byDate[h.date]||0, mx);
-  });
-  sessionRows.filter(r=>r[3]===exName).forEach(r => {
-    const mx = Math.max(...[r[4],r[5],r[6]].map(Number).filter(n=>!isNaN(n)&&n>0));
-    if (isFinite(mx)) byDate[r[1]] = Math.max(byDate[r[1]]||0, mx);
-  });
-  const dates = Object.keys(byDate).sort();
-  const vals  = dates.map(d=>byDate[d]);
+  document.getElementById('gd-sub').textContent  = 'Weight per session — hollow = partial reps (N at X)';
+
+  const entries = getAllEntries(exName);
+  const labels   = entries.map(e => fmtDate(e.date));
+  const maxVals  = entries.map(e => e.maxKg);
+  const minVals  = entries.map(e => e.minKg === Infinity ? null : e.minKg);
+  // Point styles: hollow circle if partial, filled if full
+  const maxPointStyles  = entries.map(e => e.isPartial ? 'circle' : 'circle');
+  const maxPointFill    = entries.map(e => e.isPartial ? 'transparent' : null); // null = use dataset color
+  const maxPointRadius  = entries.map(() => 4);
+
   if (chartInst) { chartInst.destroy(); chartInst=null; }
-  const col = dayKey==='d1'?'#5bb8f5':dayKey==='d2'?'#f56b8b':'#f5b535';
-  chartInst = new Chart(document.getElementById('main-chart').getContext('2d'),{
-    type:'line',
-    data:{labels:dates.map(fmtDate),datasets:[{data:vals,borderColor:col,backgroundColor:col+'22',pointBackgroundColor:col,pointRadius:3,tension:.35,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+' kg'}}},
-      scales:{x:{ticks:{color:'#666',font:{size:10},maxRotation:45,maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
-              y:{ticks:{color:'#666',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}}}}
+  const col = '#c5f135'; // accent green — no day distinction in graph
+
+  chartInst = new Chart(document.getElementById('main-chart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Max kg',
+          data: maxVals,
+          borderColor: col,
+          backgroundColor: col + '18',
+          fill: true,
+          tension: .35,
+          pointRadius: maxPointRadius,
+          pointBackgroundColor: entries.map(e => e.isPartial ? 'transparent' : col),
+          pointBorderColor: col,
+          pointBorderWidth: 2,
+        },
+        {
+          label: 'Min kg',
+          data: minVals,
+          borderColor: col + '55',
+          backgroundColor: 'transparent',
+          fill: false,
+          tension: .35,
+          pointRadius: 2,
+          pointBackgroundColor: col + '55',
+          borderDash: [4, 3],
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, labels: { color:'#888', font:{size:11}, boxWidth:20, padding:12 } },
+        tooltip: { callbacks: { label: c => c.dataset.label+': '+c.parsed.y+' kg' } }
+      },
+      scales: {
+        x: { ticks:{color:'#666',font:{size:10},maxRotation:45,maxTicksLimit:8}, grid:{color:'rgba(255,255,255,.05)'} },
+        y: { ticks:{color:'#666',font:{size:10}}, grid:{color:'rgba(255,255,255,.05)'} }
+      }
+    }
   });
-  const prog = vals.length>1 ? Math.round((vals[vals.length-1]-vals[0])/vals[0]*100) : null;
-  document.getElementById('st-max').textContent  = vals.length ? Math.max(...vals)+' kg':'—';
-  document.getElementById('st-sess').textContent = dates.length||'—';
-  document.getElementById('st-prog').textContent = prog!==null?(prog>0?'+':'')+prog+'%':'—';
+
+  const allMax = maxVals.filter(Boolean);
+  const allMin = minVals.filter(Boolean);
+  const prog = allMax.length>1 ? Math.round((allMax[allMax.length-1]-allMax[0])/allMax[0]*100) : null;
+  document.getElementById('st-max').textContent  = allMax.length ? Math.max(...allMax)+' kg' : '—';
+  document.getElementById('st-min').textContent  = allMin.length ? Math.min(...allMin)+' kg' : '—';
+  document.getElementById('st-sess').textContent = entries.length || '—';
+  document.getElementById('st-prog').textContent = prog!==null ? (prog>0?'+':'')+prog+'%' : '—';
 }
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
@@ -781,11 +912,8 @@ function switchView(v) {
 function eid(s)  { return s.replace(/[^a-zA-Z0-9]/g,'_'); }
 function esc(s)  { return s.replace(/"/g,'&quot;'); }
 function fmtDate(iso){ return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
-function parseMax(raw){
-  if (!raw||raw==='done') return null;
-  const nums = raw.replace(/[()]/g,' ').match(/\d+(\.\d+)?/g);
-  return nums ? Math.max(...nums.map(Number)) : null;
-}
+// kept for backward compat in saveEx
+function parseMax(raw){ const p = parseWeights(raw); return p ? p.maxKg : null; }
 </script>
 </body>
 </html>
