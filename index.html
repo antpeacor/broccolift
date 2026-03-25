@@ -13,7 +13,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#111;--s1:#1c1c1c;--s2:#252525;--s3:#2e2e2e;
-  --b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.14);--b3:rgba(255,255,255,.22);
+  --b1:rgba(255,255,255,.07);--b2:rgba(255,255,255,.14);--b3:rgba(255,255,255,.25);
   --t1:#f0ede8;--t2:#999;--t3:#555;
   --ac:#c5f135;--ac2:rgba(197,241,53,.14);
   --d1:#5bb8f5;--d1b:rgba(91,184,245,.13);
@@ -24,36 +24,70 @@
 html,body{background:var(--bg);color:var(--t1);font-family:var(--mono);min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px}
 .app{max-width:480px;margin:0 auto;padding:0 12px 100px}
 
+/* AUTH SCREEN */
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:100vh;text-align:center;padding:32px}
+.auth-logo{font-family:var(--sans);font-size:42px;font-weight:700;letter-spacing:-2px;margin-bottom:8px}
+.auth-logo span{color:var(--ac)}
+.auth-sub{font-size:13px;color:var(--t3);margin-bottom:48px}
+.auth-btn{display:flex;align-items:center;gap:12px;padding:14px 24px;
+  background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);
+  cursor:pointer;font-family:var(--mono);font-size:14px;color:var(--t1);
+  transition:border-color .15s}
+.auth-btn:hover{border-color:var(--b3)}
+.auth-btn svg{width:20px;height:20px;flex-shrink:0}
+.auth-note{font-size:11px;color:var(--t3);margin-top:20px;max-width:280px;line-height:1.6}
+
+/* SYNC STATUS */
+.sync-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);margin-bottom:12px}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--t3);flex-shrink:0}
+.sync-dot.ok{background:#5bf5a0}
+.sync-dot.err{background:#f56b8b}
+.sync-dot.loading{background:var(--ac);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
 /* NAV */
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
-  background:var(--s1);border-top:1px solid var(--b2);display:flex;z-index:99;padding-bottom:env(safe-area-inset-bottom)}
-.nav-btn{flex:1;padding:14px 0 10px;border:none;background:none;color:var(--t3);font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .15s}
-.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  background:var(--s1);border-top:1px solid var(--b2);display:flex;z-index:99;
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;padding:14px 0 10px;border:none;background:none;color:var(--t3);
+  font-family:var(--mono);font-size:11px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:4px;transition:color .15s}
+.nav-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round}
 .nav-btn.active{color:var(--ac)}
 
 /* HEADER */
 header{display:flex;align-items:center;justify-content:space-between;padding:18px 0 12px}
 .logo{font-family:var(--sans);font-size:20px;font-weight:700;letter-spacing:-1px}
 .logo span{color:var(--ac)}
-.badge{font-size:11px;color:var(--t3);background:var(--s1);border:1px solid var(--b1);padding:3px 10px;border-radius:20px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.badge{font-size:11px;color:var(--t3);background:var(--s1);border:1px solid var(--b1);
+  padding:3px 10px;border-radius:20px}
+.signout-btn{background:none;border:none;color:var(--t3);font-size:11px;cursor:pointer;
+  font-family:var(--mono);padding:3px 8px}
+.signout-btn:hover{color:var(--t2)}
 
 /* DAY PILLS */
 .day-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
-.day-pill{padding:12px 6px;border:1px solid var(--b1);background:var(--s1);border-radius:var(--r);cursor:pointer;text-align:center;transition:all .15s}
+.day-pill{padding:12px 6px;border:1px solid var(--b1);background:var(--s1);
+  border-radius:var(--r);cursor:pointer;text-align:center;transition:all .15s}
 .day-pill .dl{font-family:var(--sans);font-size:17px;font-weight:700;display:block;margin-bottom:1px}
 .day-pill .ds{font-size:10px;color:var(--t3)}
 .day-pill:hover{border-color:var(--b2)}
-.day-pill.on-d1{background:var(--d1b);border-color:var(--d1)} .day-pill.on-d1 .dl{color:var(--d1)}
-.day-pill.on-d2{background:var(--d2b);border-color:var(--d2)} .day-pill.on-d2 .dl{color:var(--d2)}
-.day-pill.on-d3{background:var(--d3b);border-color:var(--d3)} .day-pill.on-d3 .dl{color:var(--d3)}
+.day-pill.on-d1{background:var(--d1b);border-color:var(--d1)}.day-pill.on-d1 .dl{color:var(--d1)}
+.day-pill.on-d2{background:var(--d2b);border-color:var(--d2)}.day-pill.on-d2 .dl{color:var(--d2)}
+.day-pill.on-d3{background:var(--d3b);border-color:var(--d3)}.day-pill.on-d3 .dl{color:var(--d3)}
 
 /* EXERCISE CARD */
-.ex-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
+.ex-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  margin-bottom:8px;overflow:hidden}
 .ex-card.open{border-color:var(--b2)}
-.ex-hd{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;cursor:pointer;user-select:none}
+.ex-hd{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;
+  cursor:pointer;user-select:none}
 .ex-nm{font-family:var(--sans);font-size:14px;font-weight:700;margin-bottom:3px;color:var(--t1)}
 .ex-pr{font-size:11px;color:var(--t3)}
-.ch{width:18px;height:18px;display:flex;align-items:center;justify-content:center;color:var(--t3);transition:transform .2s;font-size:10px}
+.ch{color:var(--t3);transition:transform .2s;font-size:10px}
 .ex-card.open .ch{transform:rotate(90deg)}
 .ex-bd{display:none;border-top:1px solid var(--b1);padding:14px}
 .ex-card.open .ex-bd{display:block}
@@ -63,9 +97,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .sets-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
 .set-wrap{display:flex;flex-direction:column;gap:3px}
 .set-n{font-size:10px;color:var(--t3);text-align:center}
-.set-in{width:100%;padding:10px 4px;text-align:center;font-family:var(--mono);font-size:15px;font-weight:500;
-  background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t1);
-  transition:border-color .15s;-moz-appearance:textfield}
+.set-in{width:100%;padding:10px 4px;text-align:center;font-family:var(--mono);font-size:15px;
+  font-weight:500;background:var(--s2);border:1px solid var(--b1);border-radius:8px;
+  color:var(--t1);transition:border-color .15s;-moz-appearance:textfield}
 .set-in::-webkit-outer-spin-button,.set-in::-webkit-inner-spin-button{-webkit-appearance:none}
 .set-in:focus{outline:none;border-color:var(--b3)}
 .set-in.filled{border-color:rgba(255,255,255,.25)}
@@ -73,31 +107,28 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
   background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t2);resize:none}
 .set-note:focus{outline:none;border-color:var(--b2)}
 .save-btn{width:100%;padding:11px;border:none;background:var(--ac);color:#111;
-  font-family:var(--sans);font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;transition:opacity .15s}
+  font-family:var(--sans);font-size:13px;font-weight:700;border-radius:8px;cursor:pointer;
+  transition:opacity .15s}
 .save-btn:active{opacity:.8}
-.tmpl-banner{font-size:11px;color:var(--t3);text-align:center;margin-bottom:8px;padding:6px;
+.save-btn:disabled{opacity:.4;cursor:not-allowed}
+.tmpl-banner{font-size:11px;color:var(--t3);margin-bottom:8px;padding:6px 10px;
   background:var(--s2);border-radius:6px;border:1px solid var(--b1)}
 .tmpl-banner b{color:var(--t2)}
 
 /* HISTORY */
 .hist-sec{margin-top:12px;border-top:1px solid var(--b1);padding-top:10px}
 .hist-ttl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
-.hist-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;cursor:pointer}
-.hist-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.hist-dot.d1{background:var(--d1)}.hist-dot.d2{background:var(--d2)}.hist-dot.d3{background:var(--d3)}
+.hist-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.hist-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--t3)}
 .hist-date{font-size:10px;color:var(--t3);width:60px;flex-shrink:0}
 .hist-raw{font-size:11px;color:var(--t2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* SESSIONS VIEW */
-.sess-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.sess-ttl{font-family:var(--sans);font-size:16px;font-weight:700}
-.new-sess-btn{padding:8px 14px;border:1px solid var(--b2);background:var(--s1);color:var(--t1);
-  font-family:var(--mono);font-size:12px;border-radius:8px;cursor:pointer}
-.new-sess-btn:hover{border-color:var(--b3)}
-.sess-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;
-  padding:13px 14px;cursor:pointer;transition:border-color .15s}
+.sec-title{font-family:var(--sans);font-size:16px;font-weight:700;margin-bottom:14px}
+.sess-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  margin-bottom:8px;padding:13px 14px;cursor:pointer;transition:border-color .15s}
 .sess-card:hover{border-color:var(--b2)}
-.sess-card-top{display:flex;align-items:center;justify-content:space-between}
+.sess-top{display:flex;align-items:center;justify-content:space-between}
 .sess-name{font-family:var(--sans);font-size:14px;font-weight:700}
 .sess-meta{font-size:11px;color:var(--t3);margin-top:4px}
 .sess-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
@@ -106,96 +137,114 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .sess-tag.d3{background:var(--d3b);color:var(--d3)}
 .del-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;padding:4px}
 .del-btn:hover{color:#f56b8b}
-.empty-state{text-align:center;padding:40px 0;color:var(--t3);font-size:13px}
+.empty-state{text-align:center;padding:40px 0;color:var(--t3);font-size:13px;line-height:1.8}
 
-/* SESSION DETAIL MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end}
-.modal{background:var(--s1);width:100%;max-width:480px;margin:0 auto;border-radius:16px 16px 0 0;
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+  display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--s1);width:100%;max-width:480px;border-radius:16px 16px 0 0;
   max-height:85vh;overflow-y:auto;padding:20px 16px 40px}
 .modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .modal-ttl{font-family:var(--sans);font-size:17px;font-weight:700}
-.close-btn{background:none;border:none;color:var(--t2);cursor:pointer;font-size:22px;line-height:1;padding:4px}
+.close-btn{background:none;border:none;color:var(--t2);cursor:pointer;font-size:24px;line-height:1}
 .modal-ex-row{border-bottom:1px solid var(--b1);padding:10px 0}
-.modal-ex-nm{font-size:12px;color:var(--t2);margin-bottom:4px}
+.modal-ex-nm{font-size:12px;color:var(--t2);margin-bottom:3px}
 .modal-ex-sets{font-size:14px;color:var(--t1)}
 .modal-ex-note{font-size:11px;color:var(--t3);margin-top:2px}
-.load-btn{width:100%;margin-top:16px;padding:12px;border:1px solid var(--ac);background:var(--ac2);
-  color:var(--ac);font-family:var(--sans);font-size:14px;font-weight:700;border-radius:8px;cursor:pointer}
+.load-btn{width:100%;margin-top:16px;padding:12px;border:1px solid var(--ac);
+  background:var(--ac2);color:var(--ac);font-family:var(--sans);font-size:14px;
+  font-weight:700;border-radius:8px;cursor:pointer}
 
 /* GRAPH VIEW */
-.graph-ex-list{margin-bottom:0}
-.graph-ex-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
-  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+.search-in{width:100%;padding:10px 14px;font-family:var(--mono);font-size:13px;
+  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
+  color:var(--t1);margin-bottom:12px}
+.search-in:focus{outline:none;border-color:var(--b2)}
+.graph-ex-item{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;background:var(--s1);border:1px solid var(--b1);
+  border-radius:var(--r);margin-bottom:8px;cursor:pointer;transition:border-color .15s}
 .graph-ex-item:hover{border-color:var(--b2)}
 .graph-ex-nm{font-family:var(--sans);font-size:14px;font-weight:700}
-.graph-ex-day{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:3px;display:inline-block}
-.graph-ex-day.d1{background:var(--d1b);color:var(--d1)}
-.graph-ex-day.d2{background:var(--d2b);color:var(--d2)}
-.graph-ex-day.d3{background:var(--d3b);color:var(--d3)}
-.graph-view{display:none}
-.graph-view.visible{display:block}
-.graph-list-view{display:block}
-.graph-list-view.hidden{display:none}
-.back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--t2);
-  font-family:var(--mono);font-size:13px;cursor:pointer;padding:0;margin-bottom:14px}
+.graph-day-tag{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:3px;display:inline-block}
+.graph-day-tag.d1{background:var(--d1b);color:var(--d1)}
+.graph-day-tag.d2{background:var(--d2b);color:var(--d2)}
+.graph-day-tag.d3{background:var(--d3b);color:var(--d3)}
+.back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;
+  color:var(--t2);font-family:var(--mono);font-size:13px;cursor:pointer;padding:0;margin-bottom:14px}
 .chart-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px}
-.chart-ttl{font-family:var(--sans);font-size:16px;font-weight:700;margin-bottom:4px}
+.chart-ttl{font-family:var(--sans);font-size:16px;font-weight:700;margin-bottom:2px}
 .chart-sub{font-size:11px;color:var(--t3);margin-bottom:14px}
 .chart-wrap{position:relative;height:200px}
 .stat-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
 .stat-box{background:var(--s2);border-radius:8px;padding:10px;text-align:center}
 .stat-val{font-family:var(--sans);font-size:16px;font-weight:700;color:var(--t1)}
 .stat-lbl{font-size:10px;color:var(--t3);margin-top:2px}
-
-/* SEARCH */
-.search-wrap{position:relative;margin-bottom:12px}
-.search-in{width:100%;padding:10px 14px;font-family:var(--mono);font-size:13px;
-  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1)}
-.search-in:focus{outline:none;border-color:var(--b2)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--b2);
+  border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-<div class="app">
-  <header>
-    <div class="logo">LIFT<span>.</span></div>
-    <div class="badge" id="hdr-date"></div>
-  </header>
 
-  <!-- LOG VIEW -->
-  <div id="view-log">
-    <div class="day-row">
-      <div class="day-pill" id="pill-d1" onclick="selDay('d1')"><span class="dl">D1</span><span class="ds">Tuesday</span></div>
-      <div class="day-pill" id="pill-d2" onclick="selDay('d2')"><span class="dl">D2</span><span class="ds">Thursday</span></div>
-      <div class="day-pill" id="pill-d3" onclick="selDay('d3')"><span class="dl">D3</span><span class="ds">Saturday</span></div>
-    </div>
-    <div id="ex-list"></div>
-  </div>
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-logo">LIFT<span>.</span></div>
+  <div class="auth-sub">your workout tracker</div>
+  <button class="auth-btn" onclick="signIn()">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+    Sign in with Google
+  </button>
+  <div class="auth-note">Your workout data stays in your own private Google Sheet. This app never stores your credentials.</div>
+</div>
 
-  <!-- SESSIONS VIEW -->
-  <div id="view-sessions" style="display:none">
-    <div class="sess-toolbar">
-      <div class="sess-ttl">Sessions</div>
-      <button class="new-sess-btn" onclick="exportSessions()">Export JSON</button>
+<!-- MAIN APP -->
+<div id="main-app" style="display:none">
+  <div class="app">
+    <header>
+      <div class="logo">LIFT<span>.</span></div>
+      <div class="hdr-right">
+        <div class="badge" id="hdr-date"></div>
+        <button class="signout-btn" onclick="signOut()">sign out</button>
+      </div>
+    </header>
+    <div class="sync-bar">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-msg">Connecting…</span>
     </div>
-    <div id="sess-list"></div>
-  </div>
 
-  <!-- GRAPH VIEW -->
-  <div id="view-graph" style="display:none">
-    <div class="graph-list-view" id="graph-list-view">
-      <input class="search-in" id="graph-search" placeholder="Search exercise…" oninput="filterGraphList()">
-      <div id="graph-ex-list" class="graph-ex-list"></div>
+    <!-- LOG VIEW -->
+    <div id="view-log">
+      <div class="day-row">
+        <div class="day-pill" id="pill-d1" onclick="selDay('d1')"><span class="dl">D1</span><span class="ds">Tuesday</span></div>
+        <div class="day-pill" id="pill-d2" onclick="selDay('d2')"><span class="dl">D2</span><span class="ds">Thursday</span></div>
+        <div class="day-pill" id="pill-d3" onclick="selDay('d3')"><span class="dl">D3</span><span class="ds">Saturday</span></div>
+      </div>
+      <div id="ex-list"></div>
     </div>
-    <div class="graph-view" id="graph-detail">
-      <button class="back-btn" onclick="backToList()">← All exercises</button>
-      <div class="chart-card">
-        <div class="chart-ttl" id="gd-name"></div>
-        <div class="chart-sub" id="gd-sub"></div>
-        <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
-        <div class="stat-row">
-          <div class="stat-box"><div class="stat-val" id="st-max">—</div><div class="stat-lbl">Max kg</div></div>
-          <div class="stat-box"><div class="stat-val" id="st-sess">—</div><div class="stat-lbl">Sessions</div></div>
-          <div class="stat-box"><div class="stat-val" id="st-prog">—</div><div class="stat-lbl">Progress</div></div>
+
+    <!-- SESSIONS VIEW -->
+    <div id="view-sessions" style="display:none">
+      <div class="sec-title">Past sessions</div>
+      <div id="sess-list"></div>
+    </div>
+
+    <!-- GRAPH VIEW -->
+    <div id="view-graph" style="display:none">
+      <div id="graph-list-view">
+        <input class="search-in" id="graph-search" placeholder="Search exercise…" oninput="filterGraphList()">
+        <div id="graph-ex-list"></div>
+      </div>
+      <div id="graph-detail" style="display:none">
+        <button class="back-btn" onclick="backToGraphList()">← All exercises</button>
+        <div class="chart-card">
+          <div class="chart-ttl" id="gd-name"></div>
+          <div class="chart-sub" id="gd-sub"></div>
+          <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
+          <div class="stat-row">
+            <div class="stat-box"><div class="stat-val" id="st-max">—</div><div class="stat-lbl">Max kg</div></div>
+            <div class="stat-box"><div class="stat-val" id="st-sess">—</div><div class="stat-lbl">Sessions</div></div>
+            <div class="stat-box"><div class="stat-val" id="st-prog">—</div><div class="stat-lbl">Progress</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -203,18 +252,18 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 </div>
 
 <!-- MODAL -->
-<div class="modal-overlay" id="modal" style="display:none" onclick="closeModal(event)">
+<div class="modal-overlay" id="modal" style="display:none" onclick="closeModalOutside(event)">
   <div class="modal">
     <div class="modal-hd">
       <div class="modal-ttl" id="modal-ttl"></div>
       <button class="close-btn" onclick="hideModal()">×</button>
     </div>
     <div id="modal-body"></div>
-    <button class="load-btn" id="load-btn" onclick="loadSession()">Load this session as template ↗</button>
+    <button class="load-btn" onclick="loadAsTemplate()">Use as template ↗</button>
   </div>
 </div>
 
-<nav>
+<nav id="main-nav" style="display:none">
   <button class="nav-btn active" id="nb-log" onclick="switchView('log')">
     <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Log
@@ -229,98 +278,207 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
   </button>
 </nav>
 
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-// ── DATA ──────────────────────────────────────────────────────────────────────
-const HIST = {"d1": {"Leg press": [{"date": "2025-10-07", "raw": "60-70-90(8 at 100)"}, {"date": "2025-10-14", "raw": "70-90-100"}, {"date": "2025-10-21", "raw": "70-90-110"}, {"date": "2025-10-28", "raw": "80-100-120"}, {"date": "2025-11-04", "raw": "80-100-100"}, {"date": "2025-11-11", "raw": "80-100-120"}, {"date": "2025-11-18", "raw": "80-100-120"}, {"date": "2025-11-25", "raw": "70-90-100"}, {"date": "2025-12-02", "raw": "70-90-100(6 at 110)"}, {"date": "2025-12-09", "raw": "70-90-110"}, {"date": "2025-12-16", "raw": "70-90-110"}, {"date": "2025-12-23", "raw": "70(6 at 80)-100-110(6 at 120)"}, {"date": "2025-12-30", "raw": "80-100-110(8 at 120)-120(6+6)"}, {"date": "2026-01-06", "raw": "80-100(6 at 110)-120"}, {"date": "2026-01-13", "raw": "70(6 at 80)-100-110"}, {"date": "2026-01-20", "raw": "80-100-110"}, {"date": "2026-01-27", "raw": "80-100-120(hard)"}, {"date": "2026-02-03", "raw": "80(6 at 90)-110-120"}, {"date": "2026-02-10", "raw": "80-110-120(6 at 130("}, {"date": "2026-02-17", "raw": "90-110-130"}, {"date": "2026-02-24", "raw": "90-110-13"}, {"date": "2026-03-03", "raw": "90-110-130"}, {"date": "2026-03-10", "raw": "90(10 at 100)-110-130"}, {"date": "2026-03-17", "raw": "90-120-130"}, {"date": "2026-03-24", "raw": "90-120-130"}], "Calf press": [{"date": "2025-10-07", "raw": "60-70-70(8 at 80)"}, {"date": "2025-10-14", "raw": "60-70-80(6 at 90)"}, {"date": "2025-10-21", "raw": "60-80-90"}, {"date": "2025-10-28", "raw": "60-80-90(8 at 100)"}, {"date": "2025-11-04", "raw": "60-80-80"}, {"date": "2025-11-11", "raw": "60-80-100"}, {"date": "2025-11-18", "raw": "60-80-100(6 at 110)"}, {"date": "2025-11-25", "raw": "60-80-90"}, {"date": "2025-12-02", "raw": "60-80-90(8 at 100)"}, {"date": "2025-12-09", "raw": "60-80(6 at 90)-100"}, {"date": "2025-12-16", "raw": "70-90-100(8+4)"}, {"date": "2025-12-23", "raw": "70(6 at 80)-100-110(6+6)"}, {"date": "2025-12-30", "raw": "70(6 at 80)-100-110(6+6)"}, {"date": "2026-01-06", "raw": "80-100-110(6+6)"}, {"date": "2026-01-13", "raw": "70(6 at 80)-100-110(6+6)"}, {"date": "2026-01-20", "raw": "70-90-100"}, {"date": "2026-01-27", "raw": "80-100-110"}, {"date": "2026-02-03", "raw": "80-100-120(6+6)"}, {"date": "2026-02-10", "raw": "80-100-110(6 at 120)"}, {"date": "2026-02-17", "raw": "80-100-120"}, {"date": "2026-02-24", "raw": "80-100-120"}, {"date": "2026-03-03", "raw": "90-100(6 at 100)-120(6 at 130)"}, {"date": "2026-03-10", "raw": "(pain)60-70"}, {"date": "2026-03-17", "raw": "(pain)70-90-110(6 at 120)"}, {"date": "2026-03-24", "raw": "80-100(6 at 110)-120(6 at 130)"}], "Leg curl": [{"date": "2025-10-07", "raw": "35-45-45(8 at 50)"}, {"date": "2025-10-14", "raw": "35-45-50"}, {"date": "2025-10-21", "raw": "35-45-50"}, {"date": "2025-10-28", "raw": "40-50-50(6 at 55)"}, {"date": "2025-11-04", "raw": "40-50-50(6 at 55)"}, {"date": "2025-11-11", "raw": "40-50-50(6 at 55)"}, {"date": "2025-11-18", "raw": "40-50-52.5(8 at 55)"}, {"date": "2025-11-25", "raw": "40-45(6 at 50)-45(6 at 50)"}, {"date": "2025-12-02", "raw": "40-45(6 at 50)-55(4 at 57.5),"}, {"date": "2025-12-09", "raw": "40-50-55"}, {"date": "2025-12-16", "raw": "40(6 at 42.5)-50-55(6 at 57.5)"}, {"date": "2025-12-23", "raw": "42.5-52.5-57.5"}, {"date": "2025-12-30", "raw": "42.5(6 at 47.5)-52.5(6 at 57.6)-57.5(6 at 60) qq("}, {"date": "2026-01-06", "raw": "47.5-55(6+6)-57.5(6+6)"}, {"date": "2026-01-13", "raw": "45-52.5-57.5(6+6"}, {"date": "2026-01-20", "raw": "45-50(6 at 52.5)-52.5(6+6)"}, {"date": "2026-01-27", "raw": "47.5-52.5-57.5(6+6-hard)"}, {"date": "2026-02-03", "raw": "45-52.5-55(6 at 57.5)"}, {"date": "2026-02-10", "raw": "47.5-55(6+6)-57.5(6+6)"}, {"date": "2026-02-17", "raw": "47.5-55(6+6)-57.5(6+6)"}, {"date": "2026-02-24", "raw": "(d+1)45-52.5(6+6)-55(6+6)"}, {"date": "2026-03-03", "raw": "45-50-55"}, {"date": "2026-03-10", "raw": "(d+1, soft)40-47.5-50"}, {"date": "2026-03-17", "raw": "40-47.5-55(6 at 57.5)"}, {"date": "2026-03-24", "raw": "40-47.5-55(6 at 57.5)"}], "Assisted pullup": [{"date": "2025-10-07", "raw": "8-9-6+3"}, {"date": "2025-10-14", "raw": "8-8-8"}, {"date": "2025-10-21", "raw": "8-7-7+3"}, {"date": "2025-10-28", "raw": "9-6+3-6+3"}, {"date": "2025-11-04", "raw": "8-8-8"}, {"date": "2025-11-11", "raw": "8-7-7"}, {"date": "2026-03-17", "raw": "35-28-21"}, {"date": "2026-03-24", "raw": "35-28-28(6 at 21)"}], "Lateral pulldown": [{"date": "2025-11-18", "raw": "40-45(6+6)-45"}, {"date": "2025-11-25", "raw": "35-40-45"}, {"date": "2025-12-02", "raw": "35-40-40(6 at 45)"}, {"date": "2025-12-16", "raw": "40-45-45(4 at 50)"}, {"date": "2025-12-23", "raw": "40-45-45(6 at 50)"}, {"date": "2025-12-30", "raw": "40-45-45(6 at 50)"}, {"date": "2026-01-06", "raw": "41.25-45-50(6+6)"}, {"date": "2026-01-13", "raw": "40-45-45(6 at 50)"}, {"date": "2026-01-20", "raw": "40-45(6+6)-45(6 at 50)"}, {"date": "2026-01-27", "raw": "40-45-46.25(6 at 50)"}, {"date": "2026-02-03", "raw": "40-45-50(6+3+3)"}, {"date": "2026-02-10", "raw": "40-45-50(6+6)"}, {"date": "2026-02-17", "raw": "40-45(9+3)-45(6 at 50)"}, {"date": "2026-02-24", "raw": "41.25-45-(no third)"}, {"date": "2026-03-03", "raw": "40-45-50(6+6)"}, {"date": "2026-03-10", "raw": "40-45(6+6)-50(6+6)"}, {"date": "2026-03-24", "raw": "35(6 at 40)-45-45(6 at 50)"}], "Cable row": [{"date": "2025-10-07", "raw": "30-35-35(8 at 40)"}, {"date": "2025-10-14", "raw": "30-35-35(8 at 40)"}, {"date": "2025-10-21", "raw": "30-35-40"}, {"date": "2025-10-28", "raw": "35-40-40(8 at 45)"}, {"date": "2025-11-04", "raw": "30-35-35(6 at 40)"}, {"date": "2025-11-11", "raw": "30-35-40"}, {"date": "2025-11-18", "raw": "35-40-40"}, {"date": "2025-11-25", "raw": "30(6 at 35)-35(6 at 40)-40(6 at 45)"}, {"date": "2025-12-02", "raw": "35-40-40(6 at 45)"}, {"date": "2025-12-09", "raw": "35-40-40(6 at 45)"}, {"date": "2025-12-16", "raw": "35-40-40(6 at 45)"}, {"date": "2025-12-23", "raw": "35-40-45(6+6)"}, {"date": "2025-12-30", "raw": "40-45-50(9+3)"}, {"date": "2026-01-06", "raw": "40-45(6+6)-45(6 at 50)"}, {"date": "2026-01-13", "raw": "35-40-45(6+6)"}, {"date": "2026-01-20", "raw": "35-40-45"}, {"date": "2026-01-27", "raw": "35-40-45"}, {"date": "2026-02-03", "raw": "36.25-41.25(6+6)-45(6+6)"}, {"date": "2026-02-10", "raw": "36.25-41.25(9+3)-45(6+6)"}, {"date": "2026-02-17", "raw": "35-41.25(6+6)-45(6+6("}, {"date": "2026-02-24", "raw": "36.25-41.25-46.25(6+6)"}, {"date": "2026-03-03", "raw": "35-40-46.25(6+6)"}, {"date": "2026-03-10", "raw": "(d+1, machine) 35-40-42.5"}], "Bicep curl": [{"date": "2025-10-07", "raw": "12.5-15-17.5(4 at 20)"}, {"date": "2025-10-14", "raw": "12.5-15-17.5(4 at 20)"}, {"date": "2025-10-21", "raw": "12.5-17.5-17.5(6 at 20)"}, {"date": "2025-10-28", "raw": "12.5-15-15(6 at 17.5)"}, {"date": "2025-11-04", "raw": "12.5-15-15(6 at 17.5)"}, {"date": "2025-11-11", "raw": "12.5-15-17.5"}, {"date": "2025-11-18", "raw": "12.5-15-17.5"}, {"date": "2025-11-25", "raw": "15-17.5-20"}, {"date": "2025-12-16", "raw": "15-17.5-20(6+6)"}, {"date": "2025-12-23", "raw": "17.5-20-20"}, {"date": "2025-12-30", "raw": "17.5-20-20(6 at 25)"}, {"date": "2026-01-06", "raw": "17.5-20-20(6 at 25)"}, {"date": "2026-01-13", "raw": "17.5-20-25(6+6)"}, {"date": "2026-01-20", "raw": "17.5-17.5(6 at 20)-20(6+6)"}, {"date": "2026-01-27", "raw": "15-17.5-17.5(6 at 20)"}, {"date": "2026-02-10", "raw": "17.5-17.5-20(6+6)"}, {"date": "2026-02-17", "raw": "20-20(6 at 25)-25(6+6)"}, {"date": "2026-02-24", "raw": "20-20(6 at 25)-25(6+6)"}, {"date": "2026-03-03", "raw": "20-20(6 at 25)-25(6+6)"}, {"date": "2026-03-17", "raw": "20-20(6 at 25)-25"}, {"date": "2026-03-24", "raw": "20-20(6 at 25)-25"}], "Rear delt fly": [{"date": "2025-10-07", "raw": "10-10-10"}, {"date": "2025-10-14", "raw": "10-10-10"}, {"date": "2025-10-21", "raw": "10-12.5-12.5"}, {"date": "2025-10-28", "raw": "10-12.5-12.5"}, {"date": "2025-11-04", "raw": "10-10(6 at 12.5)-10(6 at 12.5)"}, {"date": "2025-11-11", "raw": "10-12.5(6+6)-12.5(6+3+3)"}, {"date": "2025-11-18", "raw": "10-12.5-12.5(6 at 13.75)"}, {"date": "2025-12-02", "raw": "12.5-13.75-15(6+6)"}, {"date": "2025-12-16", "raw": "12.5-13.5(6 at 15)-15(6 at 17.5)"}, {"date": "2026-01-13", "raw": "12.5-13.75-15"}, {"date": "2026-01-20", "raw": "12.5-13.75(6+6)-13.75(6+6)"}, {"date": "2026-01-27", "raw": "12.5-13.75-15(6+6)"}, {"date": "2026-02-03", "raw": "12.5-13.75-15(6+6)"}, {"date": "2026-02-10", "raw": "12.5-13.75-15(6 at 16.25)"}, {"date": "2026-02-17", "raw": "12.5-broke machine"}, {"date": "2026-03-24", "raw": "12.5-12.5(6 at 15)"}], "Chest press": [{"date": "2025-10-21", "raw": "15-15-15"}, {"date": "2025-11-04", "raw": "30-40-45"}, {"date": "2025-11-11", "raw": "35-45-50"}, {"date": "2025-11-18", "raw": "40-45-50(6 at 55)+6 at 55"}, {"date": "2025-11-25", "raw": "45-50-52.5(6 at 55)"}, {"date": "2025-12-02", "raw": "45-50-55"}, {"date": "2025-12-09", "raw": "42.5-52.5-60(6+6)"}, {"date": "2025-12-16", "raw": "45-55-60(6+3+3)"}, {"date": "2025-12-23", "raw": "47.5-57.5-62.5(6 at 65)"}, {"date": "2026-01-06", "raw": "47.5-57.5-62.5(6 at 65)"}, {"date": "2026-01-13", "raw": "45-52.5(6 at 55)-57.5"}, {"date": "2026-01-20", "raw": "45-55-60(6+6)"}, {"date": "2026-01-27", "raw": "47.5-57.5-60(6 at 62.5)"}, {"date": "2026-02-03", "raw": "47.5-60-62.5(6+6)"}, {"date": "2026-02-10", "raw": "47.5-62.5(6+6)-62.5(6+6)"}, {"date": "2026-02-17", "raw": "47.5-62.5-65(6 at 67.5)"}, {"date": "2026-02-24", "raw": "50-62.5(6 at 65)-65(6+6)"}, {"date": "2026-03-03", "raw": "50-62.5(6 at 65)-65(6 at 67.5)"}, {"date": "2026-03-10", "raw": "47.5-65(9+3)-70(6+6)"}, {"date": "2026-03-17", "raw": "50-65-70(6+6)"}, {"date": "2026-03-24", "raw": "50-62.5-"}], "Tricep pushdown": [{"date": "2025-10-28", "raw": "12.5-15-15(10 at 17.5)"}, {"date": "2025-11-04", "raw": "12.5-15-15(8 at 17.5)"}, {"date": "2025-11-11", "raw": "12.5-15-17.5"}, {"date": "2025-11-18", "raw": "12.5-15-17.5(6+6)"}, {"date": "2025-11-25", "raw": "12.5-15-17.5(6+6)"}, {"date": "2025-12-02", "raw": "12.5-15-17.5(6+6)"}, {"date": "2025-12-09", "raw": "12.5-15-17.5(6+6)"}, {"date": "2025-12-23", "raw": "13.75(6 at 16.25)-16.25-17.5"}, {"date": "2025-12-30", "raw": "13.75-17.5(6+6)-17.5(6 at 18.75)"}, {"date": "2026-01-06", "raw": "13.75-17.5-17.5(6 at 18.75)"}, {"date": "2026-01-13", "raw": "12.5(6 at 15)-15(6 at 17.5)-17.5(6+6)"}, {"date": "2026-01-20", "raw": "13.75-16.25(6+6)-16.25(6+6)"}, {"date": "2026-01-27", "raw": "13.75-16.25(9+3)-16.25(6 at 17.5)"}, {"date": "2026-02-17", "raw": "16.25-17.5(9+3)-18.75(6 at 20)"}, {"date": "2026-02-24", "raw": "16.25-17.5(9+3)-20(6+6)"}, {"date": "2026-03-03", "raw": "16.25-17.5-20(6+6)"}, {"date": "2026-03-10", "raw": "16.25-17.5-18.75(6 at 20)"}, {"date": "2026-03-17", "raw": "16.25-17.5(3 at 18.75)-18.75(6 at 20)"}, {"date": "2026-03-24", "raw": "16.25-18.75(6+6)-20(6+6)"}], "Ab finisher": [{"date": "2025-10-14", "raw": "done"}, {"date": "2025-10-21", "raw": "done"}, {"date": "2025-11-11", "raw": "done"}, {"date": "2025-11-18", "raw": "done"}, {"date": "2025-12-23", "raw": "done"}, {"date": "2025-12-30", "raw": "done"}, {"date": "2026-01-13", "raw": "done"}, {"date": "2026-02-03", "raw": "done"}, {"date": "2026-02-10", "raw": "done"}], "cable delt fly": [{"date": "2026-02-17", "raw": "7.5-7.5(6 at 10)-10(6+6)"}, {"date": "2026-02-24", "raw": "7.5-8.75(6+6)-10(6+6)"}, {"date": "2026-03-03", "raw": "7.5-8.75-8.75(6 at 10)"}, {"date": "2026-03-10", "raw": "(real) 5-7.5-10"}], "upper delt fly": [{"date": "2026-02-24", "raw": "5-6.25-7.5(6+6)"}, {"date": "2026-03-03", "raw": "6.25-6.25-7.5(6+6)"}, {"date": "2026-03-10", "raw": "(real) 15-15-17.5"}]}, "d2": {"Incline Dumbbell Press": [{"date": "2025-10-09", "raw": "16-20-24"}, {"date": "2025-10-16", "raw": "20-24-24"}, {"date": "2025-10-23", "raw": "20-24-26"}, {"date": "2025-10-30", "raw": "20-24-28"}, {"date": "2025-11-06", "raw": "20-24-28(8+6)"}, {"date": "2025-11-13", "raw": "20-24-28(8+4)"}, {"date": "2025-11-20", "raw": "20-24-28"}, {"date": "2025-11-27", "raw": "20-24-28(8+4)"}, {"date": "2025-12-04", "raw": "24-28-28(6 at 32)"}, {"date": "2025-12-11", "raw": "24-28-28(6 at 32)"}, {"date": "2025-12-18", "raw": "24-28-32(6+6)"}, {"date": "2025-12-25", "raw": "24(6 at 28)-28(6 at 32)-32(6+6)"}, {"date": "2026-01-01", "raw": "28-32-32(6 at 36)"}, {"date": "2026-01-08", "raw": "28-32-36(6+6)"}, {"date": "2026-01-15", "raw": "28-32(6+6)-36(6+6)"}, {"date": "2026-01-22", "raw": "28-32-32(6 at 36)"}, {"date": "2026-01-29", "raw": "28-32-32(6 at 36)"}, {"date": "2026-02-05", "raw": "28-32-32"}, {"date": "2026-02-12", "raw": "28-32(6+6)-32(6+6)"}, {"date": "2026-02-19", "raw": "28-32(6+3+3)-32(6+3+3)"}, {"date": "2026-02-26", "raw": "32(6+6)-32-36(6+6)"}, {"date": "2026-03-05", "raw": "32(6+6)-32-36(6+6)"}, {"date": "2026-03-12", "raw": "28-32(6+6)-36(6+6)"}, {"date": "2026-03-19", "raw": "28-32-36(6+6)"}, {"date": "2026-03-26", "raw": "28(9+3)-32(6+6)-"}], "Lateral Raise": [{"date": "2025-10-09", "raw": "16-16-12(6 at 16)"}, {"date": "2025-10-16", "raw": "12-12-12"}, {"date": "2025-10-23", "raw": "12-12-12"}, {"date": "2025-10-30", "raw": "12-12-12(6 at 18)"}, {"date": "2025-11-06", "raw": "12-12-12(6 at 16)"}, {"date": "2025-11-13", "raw": "12-12-12(6 at 16)"}, {"date": "2025-11-20", "raw": "12-12(6 at 16)-16"}, {"date": "2025-11-27", "raw": "12-12(6 at 16)-16"}, {"date": "2025-12-04", "raw": "12-16-16"}, {"date": "2025-12-11", "raw": "12-16-16"}, {"date": "2025-12-18", "raw": "12-16-16"}, {"date": "2025-12-25", "raw": "12-16-16(6 at 20)"}, {"date": "2026-01-01", "raw": "12-16-20(6+6)"}, {"date": "2026-01-08", "raw": "16-16-20(6+6)"}, {"date": "2026-01-15", "raw": "16-16-16(6 at 20)"}, {"date": "2026-01-22", "raw": "16-16(6 at 20)-20(6+6)"}, {"date": "2026-01-29", "raw": "16-16(6 at 20)"}, {"date": "2026-02-05", "raw": "16-16-16(6 at 20)"}, {"date": "2026-02-12", "raw": "16-16-16(6 at 20)"}, {"date": "2026-02-19", "raw": "16-16(6 at 20)-20(6+6)"}, {"date": "2026-02-26", "raw": "16-16(6 at 20)-20(6+6)"}, {"date": "2026-03-05", "raw": "16-16(6 at 20)-20(6+6)"}, {"date": "2026-03-12", "raw": "16-16(6 at 20)"}, {"date": "2026-03-19", "raw": "(d+1)"}, {"date": "2026-03-26", "raw": "(d+1)"}], "Face Pull": [{"date": "2025-10-09", "raw": "7.5-10-12.5"}, {"date": "2025-10-16", "raw": "10-12.5-12.5"}, {"date": "2025-10-23", "raw": "10-12.5-12.5(8+4 at 15)"}, {"date": "2025-10-30", "raw": "10-12.5-12.5(+8 at 15)"}, {"date": "2025-11-06", "raw": "10-12.5-15"}, {"date": "2025-11-13", "raw": "10-12.5-15"}, {"date": "2025-11-20", "raw": "10-12.5-16.25"}, {"date": "2025-11-27", "raw": "10-12.5-15"}, {"date": "2025-12-04", "raw": "12.5-15-16.25"}, {"date": "2025-12-11", "raw": "12.5-16.25-17.5"}, {"date": "2025-12-18", "raw": "13.75-16.25-18.75"}, {"date": "2025-12-25", "raw": "13.75-16.25-18.75(6 at 20"}, {"date": "2026-01-01", "raw": "15-17.5-20(6+6)"}, {"date": "2026-01-08", "raw": "16.25-18.75-20"}, {"date": "2026-01-15", "raw": "16.25-18.75-20(6+6)"}, {"date": "2026-01-22", "raw": "16.25-18.75-20(6 at 21.25)"}, {"date": "2026-01-29", "raw": "16.25-18.75-20"}, {"date": "2026-02-05", "raw": "16.25-18.75-20(6 at 21.25)"}, {"date": "2026-02-12", "raw": "16.25-18.75-21.25(6+6)"}, {"date": "2026-02-19", "raw": "16.25-18.75-21.25(6+6)"}, {"date": "2026-02-26", "raw": "16.25-18.75-21.25"}, {"date": "2026-03-05", "raw": "17.5-18.75(6 at 21.25)-21.25(6 at 22.5)"}, {"date": "2026-03-12", "raw": "17.5-20-21.25(6 at 22.5)"}, {"date": "2026-03-19", "raw": "17.5-20-21.25"}, {"date": "2026-03-26", "raw": "17.5-20(9+3)&20(6 at 21.5)"}], "Tricep Pushdown": [{"date": "2025-10-09", "raw": "12.5-12.5(10 at 15)"}, {"date": "2025-10-16", "raw": "12.5-15-17.5(8+4)"}, {"date": "2025-10-23", "raw": "12.5-15-15(6 at 17.5)"}, {"date": "2025-10-30", "raw": "12.5-15-15(8 at 17.5)"}, {"date": "2025-11-06", "raw": "12.5-15-15(9 at 17.5)"}, {"date": "2025-11-13", "raw": "12.5-15-15(8 at 17.5)"}, {"date": "2025-11-20", "raw": "12.5-15-15(8 at 17.5)"}, {"date": "2025-11-27", "raw": "12.5-15-15(8 at 17.5)"}, {"date": "2025-12-04", "raw": "12.5-15-15(8 at 17.5)"}, {"date": "2025-12-11", "raw": "12.5-15-17.5(6+3+3"}, {"date": "2025-12-18", "raw": "13.75-16.25-17.5(6 at 18.75)"}, {"date": "2025-12-25", "raw": "13.75-16.25-17.5(6 at 18.75)"}, {"date": "2026-01-01", "raw": "13.75-16.25-17.5(6 at 18.75)"}, {"date": "2026-01-08", "raw": "15-17.5-17.5(6 at 18.75)"}, {"date": "2026-01-15", "raw": "15-17.5-18.75(6+6)"}, {"date": "2026-01-22", "raw": "15-17.5-17.5(6 at 18.75)"}, {"date": "2026-01-29", "raw": "16.75-17.5-18.75(6+6)"}, {"date": "2026-02-05", "raw": "16.75-17.5-18.75(6+6)"}, {"date": "2026-02-12", "raw": "16.75-17.5-18.75(6 at 20)"}, {"date": "2026-02-19", "raw": "16.25-17.5-18.75(6 at 20)"}, {"date": "2026-02-26", "raw": "16.25-17.56-18.75(6 at 20)"}, {"date": "2026-03-05", "raw": "16.25-17.5(6 at 18.75)-18.75(6 at 20)"}, {"date": "2026-03-12", "raw": "16.25-17.5-18.75(6 at 20)"}, {"date": "2026-03-19", "raw": "16.25-17.5(6 at 18.75)-18.75(6 at 20)"}, {"date": "2026-03-26", "raw": "16.25-17.5(6 at 18.75)-18.75(6 at 20)"}], "Overhead Cable Extension": [{"date": "2025-10-09", "raw": "5-5-5"}, {"date": "2025-10-16", "raw": "5-5-5"}, {"date": "2025-10-23", "raw": "5-5(4 at 7.5)-5(4 at 7.5)"}, {"date": "2025-10-30", "raw": "5-7.5-7.5"}, {"date": "2025-11-06", "raw": "5-7.5(8+4)-8.75(8+4)"}, {"date": "2025-11-13", "raw": "5-7.5(8+4)-8.76(8+4)"}, {"date": "2025-11-20", "raw": "5-7.5(6+6)-7.5(6)-8.75(6)"}, {"date": "2025-11-27", "raw": "5-7.5(8+4)-8.76(8+4)"}, {"date": "2025-12-04", "raw": "6.25-7.5(8+4)-8.74(6 at 7.5)"}, {"date": "2025-12-11", "raw": "6.25-7.5(8+4)-8.75(8+4)"}, {"date": "2025-12-18", "raw": "6.25-7.5-8.75(6+6)"}, {"date": "2025-12-25", "raw": "6.25-7.5-8.75(6+6)"}, {"date": "2026-01-01", "raw": "7.5-8.75-8.75(4 at 10)"}, {"date": "2026-01-08", "raw": "6.25-8.75-8.75(4 at 10)"}, {"date": "2026-01-15", "raw": "6.25-8.75(6+6)-8.75"}, {"date": "2026-01-22", "raw": "6.25-8.75(8+4)-8.75(6+6)"}, {"date": "2026-01-29", "raw": "6.25-7.5-8.75(6+3+3)"}, {"date": "2026-02-05", "raw": "7.5-8.75(9+3)-8.75(3 at 10)"}, {"date": "2026-02-12", "raw": "7.5-8.75-10(6-6)"}, {"date": "2026-02-19", "raw": "7.5-8.75-10(6+6)"}, {"date": "2026-02-26", "raw": "7.5-8.75-10(6+6)"}, {"date": "2026-03-05", "raw": "7.5-8.75(9+3)-8.75(6 at 10)"}, {"date": "2026-03-12", "raw": "7.5-8.75(9+3)-8.75(3 at 10)"}, {"date": "2026-03-19", "raw": "7.5-8.75(6+6)-10(6+6)"}, {"date": "2026-03-26", "raw": "7.5-8.75(9+3)-8.75(3 at 10)"}], "Lat Pulldown": [{"date": "2025-10-16", "raw": "35-40-40(6 at 45)"}, {"date": "2025-10-23", "raw": "35-45-45"}, {"date": "2025-10-30", "raw": "35-45-45(8 at 50)"}, {"date": "2025-11-13", "raw": "35-40-45(6 at 50)"}, {"date": "2025-11-20", "raw": "35-40(6 at 45)-40(6 at 45)"}, {"date": "2025-11-27", "raw": "35-45-45(8 at 50)"}, {"date": "2025-12-04", "raw": "35-40-40(8 at 45)"}, {"date": "2025-12-11", "raw": "35-40-45"}, {"date": "2025-12-18", "raw": "35-41.25-46.25"}, {"date": "2025-12-25", "raw": "35-41.15-46.5(6 at 50)"}, {"date": "2026-01-01", "raw": "40-45-45(6 at 50)"}, {"date": "2026-01-15", "raw": "41.25-46.25-46.25(6 at 50)"}, {"date": "2026-01-22", "raw": "40-45-45(6 at 50)"}, {"date": "2026-01-29", "raw": "40-45-45(6 at 50)"}, {"date": "2026-02-05", "raw": "40-45-50(6+6)"}, {"date": "2026-02-12", "raw": "FREE (20 OR SO)"}, {"date": "2026-02-19", "raw": "FREE (6+4+4+4+3)"}, {"date": "2026-02-26", "raw": "FREE (4+4+4)"}, {"date": "2026-03-05", "raw": "FREE (4+4+4+4)"}, {"date": "2026-03-12", "raw": "FREE (4+5+4+4+3)"}, {"date": "2026-03-19", "raw": "FREE(4+3+3+3)"}, {"date": "2026-03-26", "raw": "FREE (5+4+4+4)"}], "Chest Press": [{"date": "2025-11-06", "raw": "30-35-40(6 at 45)"}, {"date": "2025-11-13", "raw": "35-40-45(8 at 50)"}, {"date": "2025-11-20", "raw": "40-45-52.5"}, {"date": "2025-11-27", "raw": "35-45-50(8 at 52.5)"}, {"date": "2025-12-04", "raw": "35(8 at 40)-45-52.5(8+6)"}, {"date": "2025-12-11", "raw": "40-47.5-55"}, {"date": "2025-12-18", "raw": "40-50-60(8+6)"}, {"date": "2025-12-25", "raw": "42.5-52.5-55(6 at 60)"}, {"date": "2026-01-08", "raw": "45-55-60"}, {"date": "2026-01-15", "raw": "45-55-55(6 at 60)"}, {"date": "2026-01-22", "raw": "45-55-60(6 at 62.5)"}, {"date": "2026-01-29", "raw": "45-55-62.5(6+3+3)"}, {"date": "2026-02-05", "raw": "45-57.5-62.5(3+3 at 65)"}, {"date": "2026-02-12", "raw": "47.5-57.5-62.5(3 at 65)"}, {"date": "2026-02-19", "raw": "47.5-57.5-62.5(6 at 65)"}, {"date": "2026-02-26", "raw": "47.5-57.5-65(6 at 67.5)"}, {"date": "2026-03-05", "raw": "47.5-57.5-65(3 at 67.5)"}, {"date": "2026-03-12", "raw": "47.5-57.5-65(3+3 at 67.5)"}, {"date": "2026-03-19", "raw": "47.5-60-62.5(6 at 67.5)"}, {"date": "2026-03-26", "raw": "50-60(6 at 62.5)-65(3+3+6 at 70)"}], "Adductors": [{"date": "2025-10-09", "raw": "25-30-30(8 at 35)"}, {"date": "2025-10-16", "raw": "25-30-35(8+4)"}, {"date": "2025-10-23", "raw": "30-30(8 at 35)-35(8+4)"}, {"date": "2025-10-30", "raw": "40-45-55"}, {"date": "2025-11-06", "raw": "25-30-35(8+4)"}, {"date": "2025-11-13", "raw": "27.5-32.5-32.5(8 at 37.5)"}, {"date": "2025-11-20", "raw": "27.5-32.5-35(8 at 37.5)"}, {"date": "2025-11-27", "raw": "27.5-32.5-32.5(8 at 37.5)"}, {"date": "2025-12-04", "raw": "27.5+32.5-37.5"}, {"date": "2025-12-11", "raw": "27.5-32.5-37.5(6 at 40)"}, {"date": "2025-12-18", "raw": "27.5-32.5-37.5(8 at 40)"}, {"date": "2025-12-25", "raw": "(Monday)25(6 at 27.5)-32.5-37.5(6 at 40)"}, {"date": "2026-01-01", "raw": "27.5-35-40(8+4)"}, {"date": "2026-01-08", "raw": "27.5-35-40"}, {"date": "2026-01-15", "raw": "(Bayard)40-50-55"}, {"date": "2026-01-22", "raw": "25-35(6 at 37.5)-40(6+6)"}, {"date": "2026-01-29", "raw": "27.5-37.5-40"}, {"date": "2026-02-05", "raw": "30-37.5-35(6 at 40)"}, {"date": "2026-02-12", "raw": "30-37.5-40"}, {"date": "2026-02-19", "raw": "30(6 at 32.5)-37.5(6 at 40)-42.5"}, {"date": "2026-02-26", "raw": "30-37.5-42.5(6 at 45)"}, {"date": "2026-03-05", "raw": "30-37.5-45(6+6)"}, {"date": "2026-03-12", "raw": "30-37.5-45(6 at 47.5)"}, {"date": "2026-03-19", "raw": "30-37.5-45(6 at 47.5)"}, {"date": "2026-03-26", "raw": "32.5-40-45(6 at 47.5)"}], "Abductors": [{"date": "2025-10-09", "raw": "30-30-35"}, {"date": "2025-10-16", "raw": "30-35-40"}, {"date": "2025-10-23", "raw": "35-40-40(6 at 45)"}, {"date": "2025-10-30", "raw": "35-45-45(6 at 50)"}, {"date": "2025-11-06", "raw": "35-40-45(8+4)"}, {"date": "2025-11-13", "raw": "37.5-42.5-42.5(6 at 47.5)"}, {"date": "2025-11-20", "raw": "37.5-42.5-45(8+4)"}, {"date": "2025-11-27", "raw": "37.5-40-45(8+4)"}, {"date": "2025-12-04", "raw": "37.5-42.5-45"}, {"date": "2025-12-11", "raw": "37.5-42.5-47.5(6+6)"}, {"date": "2025-12-18", "raw": "37.5-42.5-47.5"}, {"date": "2025-12-25", "raw": "37.5-42.5-47.5"}, {"date": "2026-01-01", "raw": "37.5-45-50(8+4)"}, {"date": "2026-01-08", "raw": "40-47.5-50(6 at 52.5)"}, {"date": "2026-01-15", "raw": "(Bayard)55-60-65"}, {"date": "2026-01-22", "raw": "40-47.5-52.5(6+6)"}, {"date": "2026-01-29", "raw": "37.5-45-50"}, {"date": "2026-02-05", "raw": "40-45-52.5"}, {"date": "2026-02-12", "raw": "42.5-47.5-52.5(6 at 57.5)"}, {"date": "2026-02-19", "raw": "42.5(6 at 47.5)-50-57.5(6+6)"}, {"date": "2026-02-26", "raw": "45(6 at 47.5)-50-57.5(6 at 60)"}, {"date": "2026-03-05", "raw": "47.5-52.5-57.5(6 at 62.5)"}, {"date": "2026-03-12", "raw": "47.5-55-60(6+6)"}, {"date": "2026-03-19", "raw": "47.5-55(6+6)-60(6+6)"}, {"date": "2026-03-26", "raw": "47.5-52.5(6 at 57.5)-60(6+6)"}], "Ab finisher": [{"date": "2025-10-09", "raw": "done"}, {"date": "2025-11-13", "raw": "done"}, {"date": "2026-02-12", "raw": "done"}, {"date": "2026-02-19", "raw": "done"}, {"date": "2026-03-05", "raw": "done"}], "leg extension": [{"date": "2026-02-05", "raw": "42.5-52.5-57.5(6 at 62.5)"}, {"date": "2026-02-12", "raw": "47.5-55-57.5(6 at 62.5)"}, {"date": "2026-02-19", "raw": "47.5-55-62.5(6 at 65)"}, {"date": "2026-02-26", "raw": "47.5-55-65(6+6)"}, {"date": "2026-03-05", "raw": "47.5-57.5(9+3)-65(6 at 67.5)-do not"}, {"date": "2026-03-12", "raw": "47.5-55(6+6)-60(6 at 62.5)"}, {"date": "2026-03-19", "raw": "47.5-52.5-60(6+6)"}, {"date": "2026-03-26", "raw": "47.5-52.5-60(6+6)"}], "vertical traction": [{"date": "2026-02-12", "raw": "40-42.5-45"}, {"date": "2026-02-19", "raw": "40-45-47.5(6 at 50)"}, {"date": "2026-02-26", "raw": "40-45-47.5(6 at 45)"}], "bicep curl": [{"date": "2026-02-12", "raw": "20-20-20(6 at 25)"}, {"date": "2026-02-19", "raw": "20-20(6 at 25)-20(6 at 25)"}, {"date": "2026-02-26", "raw": "20-20(6 at 25)-25(6+6)"}, {"date": "2026-03-12", "raw": "20-20(6 at 25)-25(6+6)"}], "rear delt fly": [{"date": "2026-03-19", "raw": "12.5-12.5(6 at 15)-15(6+6)"}, {"date": "2026-03-26", "raw": "12.5-15(6+6)-15(3 at 17.5)"}], "hip raise": [{"date": "2026-03-26", "raw": "60-70-80-90(x8 all)"}]}, "d3": {"Glute Drive": [{"date": "2025-12-13", "raw": "10-15-20"}, {"date": "2025-12-20", "raw": "15-20-25"}, {"date": "2025-12-27", "raw": "15-25-25"}, {"date": "2026-01-03", "raw": "15-25-25"}, {"date": "2026-01-10", "raw": "20-30-40"}, {"date": "2026-01-17", "raw": "30-40-45"}, {"date": "2026-01-24", "raw": "30-40-45(6+6)"}, {"date": "2026-01-31", "raw": "30-40-45"}, {"date": "2026-02-07", "raw": "35-70(6+6)-80(6+6)"}, {"date": "2026-02-14", "raw": "40-70(6+6)-80(6+6)"}, {"date": "2026-02-21", "raw": "50-70(6+6)-80(6+6)"}, {"date": "2026-02-28", "raw": "50-70(6+6)-80(6+6)"}, {"date": "2026-03-07", "raw": "50-70(8+4)-80(6+6)"}, {"date": "2026-03-14", "raw": "50-80(6+6)-90(6+6)"}], "Leg Curl": [{"date": "2025-12-13", "raw": "35-40-45(8 at 50)"}, {"date": "2025-12-20", "raw": "40-45-50(8+4)"}, {"date": "2025-12-27", "raw": "40-45-50"}, {"date": "2026-01-03", "raw": "40-45-50(5 at 55)"}, {"date": "2026-01-10", "raw": "40-45-50(6 at 55)"}, {"date": "2026-01-17", "raw": "40-45-55"}, {"date": "2026-01-24", "raw": "40-45-55(3 at 60)"}, {"date": "2026-01-31", "raw": "40-50-55(5 at 60)"}, {"date": "2026-02-07", "raw": "(differently)35-40-42.5(6 at 45"}, {"date": "2026-02-14", "raw": "(differently)35-40-42.5(6+6)"}, {"date": "2026-02-21", "raw": "(differently)35-40-42.5(6+6)"}, {"date": "2026-02-28", "raw": "(differently)35-40-42.5(8+4)"}, {"date": "2026-03-07", "raw": "(d)35-40-42.5(6+3+3)"}, {"date": "2026-03-14", "raw": "(d)35-40(6+6)-40(6+6)"}, {"date": "2026-03-21", "raw": "(d)32.5-37.5(6+6)-40(6+6)"}], "Extension": [{"date": "2025-12-13", "raw": "25-30-35"}, {"date": "2025-12-20", "raw": "30-35-40"}, {"date": "2025-12-27", "raw": "30-35-45"}, {"date": "2026-01-03", "raw": "35-40-50"}, {"date": "2026-01-10", "raw": "40-45-50"}, {"date": "2026-01-17", "raw": "40-45-55"}, {"date": "2026-01-24", "raw": "40-45-55(6 at 60)"}, {"date": "2026-01-31", "raw": "40-45-55(10 at 60)"}, {"date": "2026-02-07", "raw": "37.5-47.5-57.5"}, {"date": "2026-02-14", "raw": "37.5-47.5-60(6+6)"}, {"date": "2026-02-21", "raw": "37.5-50-60(8+4)"}, {"date": "2026-02-28", "raw": "40-50-60(8+6)"}, {"date": "2026-03-07", "raw": "45-52.5(6 at 55)-60(6+6)"}, {"date": "2026-03-14", "raw": "45-57.5-60(6+6)"}, {"date": "2026-03-21", "raw": "40-52.5-57.5"}, {"date": "2026-03-28", "raw": "(day before"}], "Flat Dumbbell Bench Press": [{"date": "2025-12-13", "raw": "20-25-30"}, {"date": "2025-12-20", "raw": "20-25-25"}, {"date": "2025-12-27", "raw": "20-20-25"}, {"date": "2026-01-03", "raw": "20-25-30"}, {"date": "2026-01-10", "raw": "20-25-30"}, {"date": "2026-01-17", "raw": "20-25-30"}, {"date": "2026-01-24", "raw": "20-25-30(4 at 35)"}, {"date": "2026-01-31", "raw": "20-25-35(10+3)"}, {"date": "2026-02-07", "raw": "20-30-30(8 at 40)"}, {"date": "2026-02-14", "raw": "20-30-40(6+3+3)"}, {"date": "2026-02-21", "raw": "20-30-40(5+3+2)"}], "Lat Pulldown": [{"date": "2025-12-13", "raw": "35-40-45"}, {"date": "2025-12-20", "raw": "35-40-45"}, {"date": "2025-12-27", "raw": "35-40-45"}, {"date": "2026-01-03", "raw": "40-45-50"}, {"date": "2026-01-10", "raw": "40-45-45(6 at 50)"}, {"date": "2026-01-17", "raw": "40-45-40(8 at 45)"}, {"date": "2026-01-24", "raw": "40-45-45(8 at 50)"}, {"date": "2026-01-31", "raw": "40-45-45(6+6)"}, {"date": "2026-02-07", "raw": "40-40(6 at 45)-40(6 at 45)"}, {"date": "2026-02-14", "raw": "35-40-45"}, {"date": "2026-02-21", "raw": "35-45-45(6 at 50)"}, {"date": "2026-02-28", "raw": "40-45(6+6)-45(6+3+3)"}, {"date": "2026-03-07", "raw": "40-45-50(6+6)"}, {"date": "2026-03-14", "raw": "41.5-45(6+6)-50(6+6)"}, {"date": "2026-03-21", "raw": "40-45(6+6)-45(6+6)"}], "Cable Row": [{"date": "2025-12-13", "raw": "30-35-35(6 at 40)"}, {"date": "2025-12-20", "raw": "35-35-35(6 at 40)"}, {"date": "2025-12-27", "raw": "30-35-40"}, {"date": "2026-01-03", "raw": "35-40-40"}, {"date": "2026-01-10", "raw": "35-40-40"}, {"date": "2026-01-17", "raw": "30-35-40"}, {"date": "2026-01-24", "raw": "30-35-35(6 at 40)"}, {"date": "2026-01-31", "raw": "30-35-40"}, {"date": "2026-02-07", "raw": "30-35-40"}, {"date": "2026-02-14", "raw": "35-40(8+4)-40(6 at 45)"}, {"date": "2026-02-21", "raw": "35-40-45(6+6)"}, {"date": "2026-02-28", "raw": "35-40(6 at 45)-45(6+6)"}, {"date": "2026-03-07", "raw": "40-45-45(6 at 50)"}, {"date": "2026-03-14", "raw": "41.25-45(6+6)-50(6+6)"}], "Bicep Curl": [{"date": "2025-12-13", "raw": "12.5-15-17.5"}, {"date": "2025-12-20", "raw": "12.5-15-17.5"}, {"date": "2025-12-27", "raw": "12.5-17.5-17.5(8 at 20)"}, {"date": "2026-01-03", "raw": "12.5-17.5-17.5(6 at 20)"}, {"date": "2026-01-10", "raw": "12.5-17.5-17.5(6 at 20)"}, {"date": "2026-01-17", "raw": "12.5-17.5-17.5(6 at 20)"}, {"date": "2026-01-24", "raw": "15-17-17"}, {"date": "2026-01-31", "raw": "15-17.5-20"}, {"date": "2026-02-07", "raw": "12.5(8 at 15)-17.5-17.5(6 at 20)"}, {"date": "2026-02-14", "raw": "15-17.5-17.5(6 at 20)"}, {"date": "2026-02-21", "raw": "15-17.5-20"}, {"date": "2026-02-28", "raw": "15-17.5-20"}, {"date": "2026-03-07", "raw": "17.5-20-20(4 at 25)"}, {"date": "2026-03-14", "raw": "20-20-25(6+6)"}], "Ab finisher": [{"date": "2025-12-13", "raw": "done"}, {"date": "2026-01-03", "raw": "done"}, {"date": "2026-01-31", "raw": "done"}, {"date": "2026-02-07", "raw": "done"}, {"date": "2026-02-14", "raw": "done"}, {"date": "2026-03-14", "raw": "done"}], "Reverse fly": [{"date": "2026-02-07", "raw": "12.5-13.75-13.75(8 at 15)"}, {"date": "2026-02-14", "raw": "12.5-13.75-15(6+3+3)"}, {"date": "2026-02-21", "raw": "12.5(6 at 11.25)-13.75-15(6 at 17.5)"}, {"date": "2026-02-28", "raw": "12.5-15(6+6)-15(3 at 16.5)"}, {"date": "2026-03-07", "raw": "12.5-15-16.25(6+6)"}, {"date": "2026-03-14", "raw": "12.5-15-16.25(6 at 17.5)"}], "Chest press": [{"date": "2026-02-21", "raw": "42.5-52.5-60(6+3+3)"}, {"date": "2026-02-28", "raw": "42.5(6 at 45)-52.5(6 at 55)-55"}, {"date": "2026-03-07", "raw": "42.5(6 at 47.5)-55-60(6+6)"}, {"date": "2026-03-14", "raw": "47.5-57.5(6+6)-62.5(9+5)"}, {"date": "2026-03-21", "raw": "47.5-55-60"}]}};
-
-const DAYS = {
-  d1:{label:'D1',color:'d1',
-    exercises:['Leg press','Calf press','Leg curl','Assisted pullup','Lateral pulldown','Cable row','Bicep curl','Rear delt fly','Chest press','Tricep pushdown','cable delt fly','upper delt fly','Ab finisher']},
-  d2:{label:'D2',color:'d2',
-    exercises:['Incline Dumbbell Press','Lateral Raise','Face Pull','Tricep Pushdown','Overhead Cable Extension','Lat Pulldown','Chest Press','Adductors','Abductors','leg extension','vertical traction','bicep curl','rear delt fly','hip raise','Ab finisher']},
-  d3:{label:'D3',color:'d3',
-    exercises:['Glute Drive','Leg Curl','Extension','Lat Pulldown','Cable Row','Bicep Curl','Reverse fly','Chest press','Flat Dumbbell Bench Press','Ab finisher']}
-};
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const CLIENT_ID = '281076985814-vq0vfa3jces2jlttd236jofhn9jo7v42.apps.googleusercontent.com';
+const SHEET_ID  = '1nddYAEfDluokRhQIt1LE372ZTBnEt72oPk6OIzz_7CU';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+const API_BASE  = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let curDay = 'd1';
-let curView = 'log';
-let todaySets = {}; // {exName: {s1,s2,s3,note}}
-let loadedTemplate = null;
-let sessions = [];
-let modalSession = null;
-let chartInst = null;
-let curGraphEx = null;
+let accessToken = null;
+let historyData = { d1: {}, d2: {}, d3: {} }; // {exName: [{date,raw}]}
+let sessionRows = []; // raw rows from sessions sheet
+let todaySets   = {}; // {exName: {s1,s2,s3,note}}
+let curDay      = 'd1';
+let curView     = 'log';
+let chartInst   = null;
+let modalSess   = null;
+let template    = null; // {day, sets:{exName:{s1,s2,s3}}}
 
-function getSessions(){try{return JSON.parse(localStorage.getItem('lift_sessions')||'[]')}catch{return[]}}
-function saveSessions(s){localStorage.setItem('lift_sessions',JSON.stringify(s))}
-function getTemplate(){try{return JSON.parse(localStorage.getItem('lift_tmpl')||'null')}catch{return null}}
-function saveTemplate(t){localStorage.setItem('lift_tmpl',JSON.stringify(t))}
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function signIn() {
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    callback: async (resp) => {
+      if (resp.error) { setSyncErr('Auth failed: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      localStorage.setItem('lift_token_expiry', Date.now() + (resp.expires_in - 60) * 1000);
+      showApp();
+      await loadAllData();
+    }
+  });
+  client.requestAccessToken();
+}
 
-// ── UTILS ─────────────────────────────────────────────────────────────────────
-function parseMaxKg(raw){
-  if(!raw||raw==='done')return null;
-  const nums=raw.replace(/[()]/g,' ').match(/\d+(\.\d+)?/g);
-  if(!nums)return null;
-  return Math.max(...nums.map(Number));
+function signOut() {
+  google.accounts.oauth2.revoke(accessToken, () => {});
+  accessToken = null;
+  localStorage.removeItem('lift_token_expiry');
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('main-app').style.display    = 'none';
+  document.getElementById('main-nav').style.display    = 'none';
 }
-function getHistory(exName){
-  for(const d of ['d1','d2','d3']){
-    if(HIST[d][exName]) return{hist:HIST[d][exName],day:d};
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display    = 'block';
+  document.getElementById('main-nav').style.display    = 'flex';
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('fr-FR', {weekday:'short',day:'numeric',month:'short'});
+}
+
+// Auto re-auth if token still valid
+window.addEventListener('load', () => {
+  const expiry = localStorage.getItem('lift_token_expiry');
+  if (expiry && Date.now() < Number(expiry)) {
+    // Token might still be alive — try silent refresh
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID, scope: SCOPES,
+      prompt: '',
+      callback: async (resp) => {
+        if (!resp.error) {
+          accessToken = resp.access_token;
+          localStorage.setItem('lift_token_expiry', Date.now() + (resp.expires_in - 60) * 1000);
+          showApp();
+          await loadAllData();
+        }
+      }
+    });
+    // Delay slightly for GSI to init
+    setTimeout(() => { try { client.requestAccessToken(); } catch(e) {} }, 500);
   }
-  // case-insensitive
-  for(const d of ['d1','d2','d3']){
-    const k=Object.keys(HIST[d]).find(k2=>k2.toLowerCase()===exName.toLowerCase());
-    if(k) return{hist:HIST[d][k],day:d};
+});
+
+// ── SHEETS API ────────────────────────────────────────────────────────────────
+async function sheetsGet(range) {
+  const url = `${API_BASE}/${SHEET_ID}/values/${encodeURIComponent(range)}`;
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!r.ok) throw new Error('GET failed: ' + r.status);
+  const d = await r.json();
+  return d.values || [];
+}
+
+async function sheetsAppend(range, values) {
+  const url = `${API_BASE}/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values })
+  });
+  if (!r.ok) throw new Error('APPEND failed: ' + r.status);
+  return r.json();
+}
+
+async function sheetsDelete(sheetGid, startIndex, endIndex) {
+  const url = `${API_BASE}/${SHEET_ID}:batchUpdate`;
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests: [{ deleteDimension: {
+      range: { sheetId: sheetGid, dimension: 'ROWS', startIndex, endIndex }
+    }}]})
+  });
+  if (!r.ok) throw new Error('DELETE failed: ' + r.status);
+  return r.json();
+}
+
+// ── SYNC STATUS ───────────────────────────────────────────────────────────────
+function setSyncOk(msg)  { setSync('ok',  msg); }
+function setSyncErr(msg) { setSync('err', msg); }
+function setSyncBusy(msg){ setSync('loading', msg); }
+function setSync(state, msg) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-msg').textContent = msg;
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────────
+async function loadAllData() {
+  setSyncBusy('Loading your data…');
+  try {
+    const [d1r, d2r, d3r, sessR] = await Promise.all([
+      sheetsGet('d1_history!A:C'),
+      sheetsGet('d2_history!A:C'),
+      sheetsGet('d3_history!A:C'),
+      sheetsGet('sessions!A:H')
+    ]);
+    historyData = {
+      d1: parseHistoryRows(d1r),
+      d2: parseHistoryRows(d2r),
+      d3: parseHistoryRows(d3r)
+    };
+    sessionRows = sessR.slice(1); // skip header
+    setSyncOk('Synced with Google Sheets');
+    selDay(curDay);
+    if (curView === 'sessions') renderSessions();
+    if (curView === 'graph')    renderGraphList();
+  } catch(e) {
+    setSyncErr('Sync error — ' + e.message);
   }
-  return{hist:[],day:null};
 }
-function fmtDate(iso){
-  const d=new Date(iso+'T12:00:00');
-  return d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+
+function parseHistoryRows(rows) {
+  // rows: [[exercise, date, raw], ...]
+  const map = {};
+  rows.slice(1).forEach(r => { // skip header
+    if (!r[0] || !r[1] || !r[2]) return;
+    const name = r[0].trim();
+    if (!map[name]) map[name] = [];
+    map[name].push({ date: r[1], raw: r[2] });
+  });
+  // sort each by date
+  Object.keys(map).forEach(k => map[k].sort((a,b) => a.date.localeCompare(b.date)));
+  return map;
 }
-function dayColor(d){return d==='d1'?'var(--d1)':d==='d2'?'var(--d2)':'var(--d3)'}
 
 // ── LOG VIEW ──────────────────────────────────────────────────────────────────
-function selDay(d){
-  curDay=d;
-  ['d1','d2','d3'].forEach(x=>{
-    document.getElementById('pill-'+x).className='day-pill'+(x===d?' on-'+d:'');
+function selDay(d) {
+  curDay = d;
+  ['d1','d2','d3'].forEach(x => {
+    document.getElementById('pill-'+x).className = 'day-pill' + (x===d ? ' on-'+d : '');
   });
   renderLog();
 }
 
-function renderLog(){
-  const exNames=DAYS[curDay].exercises;
-  const c=document.getElementById('ex-list');
-  c.innerHTML='';
-  const tmpl=getTemplate();
-  exNames.forEach(name=>{
-    const {hist}=getHistory(name);
-    const last=hist.length?hist[hist.length-1]:null;
-    const preview=last?last.raw:'No data yet';
-    const cur=todaySets[name]||{};
-    const hasTmpl=tmpl&&tmpl.day===curDay&&tmpl.sets&&tmpl.sets[name];
+function renderLog() {
+  const hist = historyData[curDay];
+  const exNames = Object.keys(hist);
+  const c = document.getElementById('ex-list');
+  c.innerHTML = '';
 
-    const card=document.createElement('div');
-    card.className='ex-card';
-    card.id='card-'+CSS.escape(name);
+  if (!exNames.length) {
+    c.innerHTML = '<div class="empty-state"><span class="spinner"></span>Loading exercises…</div>';
+    return;
+  }
 
-    // Recent history rows
-    const recent=hist.slice(-4);
-    const histHTML=recent.map(h=>`
-      <div class="hist-row" title="${h.raw}">
-        <div class="hist-dot ${h.day||curDay}"></div>
+  exNames.forEach(name => {
+    const entries = hist[name] || [];
+    const last = entries.length ? entries[entries.length-1] : null;
+    const preview = last ? last.raw : 'No data yet';
+    const cur = todaySets[name] || {};
+    const tmplSets = template && template.day === curDay && template.sets[name];
+
+    const card = document.createElement('div');
+    card.className = 'ex-card';
+    card.id = 'card-' + cssId(name);
+
+    const tmplHint = tmplSets
+      ? `<div class="tmpl-banner">Template: <b>${[tmplSets.s1,tmplSets.s2,tmplSets.s3].filter(Boolean).join(' · ')}</b></div>`
+      : '';
+
+    const recent = entries.slice(-4);
+    const histHTML = recent.map(h =>
+      `<div class="hist-row">
+        <div class="hist-dot"></div>
         <div class="hist-date">${fmtDate(h.date)}</div>
         <div class="hist-raw">${h.raw}</div>
       </div>`).join('');
 
-    // Template hint
-    const tmplSets=hasTmpl?tmpl.sets[name]:null;
-    const tmplHint=tmplSets?`<div class="tmpl-banner">Template: <b>${[tmplSets.s1,tmplSets.s2,tmplSets.s3].filter(Boolean).join(' · ')}</b>${tmplSets.note?` — ${tmplSets.note}`:''}</div>`:'';
-
-    card.innerHTML=`
-      <div class="ex-hd" onclick="toggleEx('${name.replace(/'/g,"\\'")}')">
+    card.innerHTML = `
+      <div class="ex-hd" onclick="toggleEx(${JSON.stringify(name)})">
         <div>
           <div class="ex-nm">${name}</div>
           <div class="ex-pr">${preview}</div>
@@ -331,252 +489,231 @@ function renderLog(){
         ${tmplHint}
         <div class="sets-lbl">Today's sets (kg)</div>
         <div class="sets-g">
-          ${[1,2,3].map(i=>`
+          ${[1,2,3].map(i => `
             <div class="set-wrap">
               <div class="set-n">Set ${i}</div>
-              <input class="set-in" type="number" inputmode="decimal" step="0.5"
-                id="si-${CSS.escape(name)}-${i}"
+              <input class="set-in ${cur['s'+i]?'filled':''}" type="number" inputmode="decimal" step="0.5"
+                id="si-${cssId(name)}-${i}"
                 value="${cur['s'+i]||''}"
-                placeholder="${tmplSets&&tmplSets['s'+i]?tmplSets['s'+i]:'—'}"
-                oninput="onInput(this,'${name.replace(/'/g,"\\'")}','s${i}')">
+                placeholder="${tmplSets&&tmplSets['s'+i] ? tmplSets['s'+i] : '—'}"
+                oninput="onInput(this,${JSON.stringify(name)},'s${i}')">
             </div>`).join('')}
         </div>
         <textarea class="set-note" rows="1" placeholder="Note (optional)"
-          id="note-${CSS.escape(name)}"
-          oninput="onInput(this,'${name.replace(/'/g,"\\'")}','note')">${cur.note||''}</textarea>
-        <button class="save-btn" onclick="saveEx('${name.replace(/'/g,"\\'")}')">Save ✓</button>
-        ${histHTML?`<div class="hist-sec"><div class="hist-ttl">Recent sessions</div>${histHTML}</div>`:''}
+          id="note-${cssId(name)}"
+          oninput="onInput(this,${JSON.stringify(name)},'note')">${cur.note||''}</textarea>
+        <button class="save-btn" id="savebtn-${cssId(name)}" onclick="saveEx(${JSON.stringify(name)})">Save ✓</button>
+        ${histHTML ? `<div class="hist-sec"><div class="hist-ttl">Recent</div>${histHTML}</div>` : ''}
       </div>`;
     c.appendChild(card);
   });
 }
 
-function toggleEx(name){
-  const id='card-'+CSS.escape(name);
-  const card=document.getElementById(id);
-  card.classList.toggle('open');
+function toggleEx(name) {
+  document.getElementById('card-'+cssId(name)).classList.toggle('open');
 }
 
-function onInput(el,name,field){
-  if(!todaySets[name])todaySets[name]={};
-  todaySets[name][field]=el.value;
-  if(field!=='note')el.classList.toggle('filled',el.value!=='');
+function onInput(el, name, field) {
+  if (!todaySets[name]) todaySets[name] = {};
+  todaySets[name][field] = el.value;
+  if (field !== 'note') el.classList.toggle('filled', el.value !== '');
 }
 
-function saveEx(name){
-  const cur=todaySets[name]||{};
-  const sets=[cur.s1,cur.s2,cur.s3].map(v=>v?v.trim():'');
-  if(sets.every(s=>!s)){alert('Enter at least one set');return;}
+async function saveEx(name) {
+  const cur = todaySets[name] || {};
+  const s1 = (cur.s1||'').trim(), s2 = (cur.s2||'').trim(), s3 = (cur.s3||'').trim();
+  if (!s1 && !s2 && !s3) { alert('Enter at least one set.'); return; }
 
-  sessions=getSessions();
-  // Find or create today's session for this day
-  const today=new Date().toISOString().slice(0,10);
-  let sess=sessions.find(s=>s.date===today&&s.day===curDay);
-  if(!sess){
-    sess={id:Date.now(),date:today,day:curDay,sets:{},notes:{}};
-    sessions.unshift(sess);
-  }
-  sess.sets[name]=sets;
-  if(cur.note)sess.notes[name]=cur.note;
-  saveSessions(sessions);
+  const btn = document.getElementById('savebtn-'+cssId(name));
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+  setSyncBusy('Saving…');
 
-  // Clear inputs
-  todaySets[name]={};
-  const card=document.getElementById('card-'+CSS.escape(name));
-  if(card){
-    [1,2,3].forEach(i=>{const el=document.getElementById('si-'+CSS.escape(name)+'-'+i);if(el){el.value='';el.classList.remove('filled');}});
-    const n=document.getElementById('note-'+CSS.escape(name));if(n)n.value='';
-    card.classList.remove('open');
+  const today = new Date().toISOString().slice(0,10);
+  const id = Date.now().toString();
+  const row = [id, today, curDay, name, s1, s2, s3, cur.note||''];
+
+  try {
+    await sheetsAppend('sessions!A:H', [row]);
+    // Update local sessionRows
+    sessionRows.push(row);
+    // Clear inputs
+    todaySets[name] = {};
+    document.getElementById('card-'+cssId(name)).classList.remove('open');
+    setTimeout(() => renderLog(), 50);
+    setSyncOk('Saved ✓');
+  } catch(e) {
+    setSyncErr('Save failed — ' + e.message);
+    btn.disabled = false;
+    btn.innerHTML = 'Save ✓';
   }
-  // Refresh to update preview
-  setTimeout(()=>renderLog(),50);
 }
 
 // ── SESSIONS VIEW ─────────────────────────────────────────────────────────────
-function renderSessions(){
-  sessions=getSessions();
-  const c=document.getElementById('sess-list');
-  c.innerHTML='';
-  if(!sessions.length){c.innerHTML='<div class="empty-state">No saved sessions yet.<br>Log exercises to create sessions.</div>';return;}
-  sessions.forEach((s,idx)=>{
-    const exCount=Object.keys(s.sets||{}).length;
-    const div=document.createElement('div');
-    div.className='sess-card';
-    div.innerHTML=`
-      <div class="sess-card-top">
+function renderSessions() {
+  const c = document.getElementById('sess-list');
+  c.innerHTML = '';
+  if (!sessionRows.length) {
+    c.innerHTML = '<div class="empty-state">No sessions yet.<br>Log exercises to see them here.</div>';
+    return;
+  }
+  // Group by (date, day)
+  const grouped = {};
+  sessionRows.forEach(r => {
+    const key = r[1] + '|' + r[2];
+    if (!grouped[key]) grouped[key] = { date: r[1], day: r[2], exercises: [] };
+    grouped[key].exercises.push({ name: r[3], sets: [r[4],r[5],r[6]], note: r[7] });
+  });
+  const keys = Object.keys(grouped).sort().reverse();
+  keys.forEach(key => {
+    const s = grouped[key];
+    const div = document.createElement('div');
+    div.className = 'sess-card';
+    div.innerHTML = `
+      <div class="sess-top">
         <div>
           <div class="sess-name">${fmtDate(s.date)}</div>
-          <div class="sess-meta">${exCount} exercise${exCount!==1?'s':''}</div>
+          <div class="sess-meta">${s.exercises.length} exercise${s.exercises.length!==1?'s':''}</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="sess-tag ${s.day}">${(s.day||'').toUpperCase()}</span>
-          <button class="del-btn" onclick="delSession(event,${idx})">🗑</button>
-        </div>
+        <span class="sess-tag ${s.day||''}">${(s.day||'').toUpperCase()}</span>
       </div>`;
-    div.addEventListener('click',()=>showSession(s));
+    div.onclick = () => showSessionModal(s);
     c.appendChild(div);
   });
 }
 
-function delSession(e,idx){
-  e.stopPropagation();
-  if(!confirm('Delete this session?'))return;
-  sessions=getSessions();
-  sessions.splice(idx,1);
-  saveSessions(sessions);
-  renderSessions();
-}
-
-function showSession(s){
-  modalSession=s;
-  document.getElementById('modal-ttl').textContent=fmtDate(s.date)+' — '+(s.day||'').toUpperCase();
-  const body=document.getElementById('modal-body');
-  const exNames=Object.keys(s.sets||{});
-  if(!exNames.length){body.innerHTML='<div class="empty-state">No exercises logged.</div>';return;}
-  body.innerHTML=exNames.map(nm=>{
-    const sets=(s.sets[nm]||[]).filter(Boolean).join(' · ');
-    const note=s.notes&&s.notes[nm]?`<div class="modal-ex-note">${s.notes[nm]}</div>`:'';
-    return`<div class="modal-ex-row"><div class="modal-ex-nm">${nm}</div><div class="modal-ex-sets">${sets} kg</div>${note}</div>`;
+function showSessionModal(s) {
+  modalSess = s;
+  document.getElementById('modal-ttl').textContent = fmtDate(s.date) + ' — ' + (s.day||'').toUpperCase();
+  document.getElementById('modal-body').innerHTML = s.exercises.map(ex => {
+    const sets = ex.sets.filter(Boolean).join(' · ');
+    return `<div class="modal-ex-row">
+      <div class="modal-ex-nm">${ex.name}</div>
+      <div class="modal-ex-sets">${sets} kg</div>
+      ${ex.note ? `<div class="modal-ex-note">${ex.note}</div>` : ''}
+    </div>`;
   }).join('');
-  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal').style.display = 'flex';
 }
 
-function loadSession(){
-  if(!modalSession)return;
-  // Build template: {day, sets:{exName:{s1,s2,s3,note}}}
-  const tmpl={day:modalSession.day,sets:{}};
-  const exNames=Object.keys(modalSession.sets||{});
-  exNames.forEach(nm=>{
-    const arr=modalSession.sets[nm]||[];
-    tmpl.sets[nm]={s1:arr[0]||'',s2:arr[1]||'',s3:arr[2]||'',note:(modalSession.notes&&modalSession.notes[nm])||''};
+function loadAsTemplate() {
+  if (!modalSess) return;
+  template = { day: modalSess.day, sets: {} };
+  modalSess.exercises.forEach(ex => {
+    template.sets[ex.name] = { s1: ex.sets[0]||'', s2: ex.sets[1]||'', s3: ex.sets[2]||'' };
   });
-  saveTemplate(tmpl);
   hideModal();
-  selDay(modalSession.day||curDay);
+  selDay(modalSess.day);
   switchView('log');
 }
 
-function hideModal(){document.getElementById('modal').style.display='none';}
-function closeModal(e){if(e.target===document.getElementById('modal'))hideModal();}
-
-function exportSessions(){
-  sessions=getSessions();
-  const blob=new Blob([JSON.stringify(sessions,null,2)],{type:'application/json'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='workout_sessions.json';a.click();
-}
+function hideModal() { document.getElementById('modal').style.display = 'none'; }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal')) hideModal(); }
 
 // ── GRAPH VIEW ────────────────────────────────────────────────────────────────
-function renderGraphList(){
-  const c=document.getElementById('graph-ex-list');
-  c.innerHTML='';
-  // Collect all exercises from all days + history
-  const all=[];
-  ['d1','d2','d3'].forEach(d=>{
-    DAYS[d].exercises.forEach(nm=>{
-      const {hist}=getHistory(nm);
-      if(hist.length>0) all.push({name:nm,day:d,count:hist.length});
+function renderGraphList() {
+  const c = document.getElementById('graph-ex-list');
+  c.innerHTML = '';
+  const q = document.getElementById('graph-search').value.toLowerCase();
+  const all = [];
+  ['d1','d2','d3'].forEach(day => {
+    Object.keys(historyData[day]).forEach(name => {
+      if (!q || name.toLowerCase().includes(q))
+        all.push({ name, day, count: historyData[day][name].length });
     });
   });
-  // Also add from saved sessions
-  getSessions().forEach(s=>{
-    Object.keys(s.sets||{}).forEach(nm=>{
-      if(!all.find(x=>x.name===nm)){
-        all.push({name:nm,day:s.day,count:1});
-      }
-    });
+  // also add exercises that only appear in sessions
+  const sessExNames = new Set(sessionRows.map(r => r[3]));
+  sessExNames.forEach(name => {
+    if (!all.find(x => x.name === name) && (!q || name.toLowerCase().includes(q)))
+      all.push({ name, day: sessionRows.find(r=>r[3]===name)?.[2]||'', count: 0 });
   });
-  const query=document.getElementById('graph-search').value.toLowerCase();
-  const filtered=all.filter(x=>x.name.toLowerCase().includes(query));
-  filtered.forEach(x=>{
-    const div=document.createElement('div');
-    div.className='graph-ex-item';
-    div.innerHTML=`<div><div class="graph-ex-nm">${x.name}</div><span class="graph-ex-day ${x.day}">${x.day.toUpperCase()}</span></div><div style="color:var(--t3);font-size:11px">${x.count} sessions ▶</div>`;
-    div.onclick=()=>showGraph(x.name,x.day);
+  all.sort((a,b) => a.name.localeCompare(b.name));
+  all.forEach(x => {
+    const div = document.createElement('div');
+    div.className = 'graph-ex-item';
+    div.innerHTML = `
+      <div>
+        <div class="graph-ex-nm">${x.name}</div>
+        <span class="graph-day-tag ${x.day}">${x.day.toUpperCase()}</span>
+      </div>
+      <div style="color:var(--t3);font-size:11px">${x.count} sessions ▶</div>`;
+    div.onclick = () => showGraph(x.name, x.day);
     c.appendChild(div);
   });
 }
 
-function filterGraphList(){renderGraphList();}
-
-function backToList(){
-  document.getElementById('graph-list-view').classList.remove('hidden');
-  document.getElementById('graph-detail').classList.remove('visible');
-  curGraphEx=null;
+function filterGraphList() { renderGraphList(); }
+function backToGraphList() {
+  document.getElementById('graph-list-view').style.display = 'block';
+  document.getElementById('graph-detail').style.display = 'none';
 }
 
-function showGraph(exName,dayKey){
-  curGraphEx=exName;
-  document.getElementById('graph-list-view').classList.add('hidden');
-  document.getElementById('graph-detail').classList.add('visible');
-  document.getElementById('gd-name').textContent=exName;
-  document.getElementById('gd-sub').textContent='Max weight per session';
+function showGraph(exName, dayKey) {
+  document.getElementById('graph-list-view').style.display = 'none';
+  document.getElementById('graph-detail').style.display = 'block';
+  document.getElementById('gd-name').textContent = exName;
+  document.getElementById('gd-sub').textContent = 'Max weight per session';
 
-  // Collect data: from HIST + from saved sessions
-  const points=[];
-  const {hist}=getHistory(exName);
-  hist.forEach(h=>{
-    const max=parseMaxKg(h.raw);
-    if(max!==null) points.push({date:h.date,val:max,src:'history'});
+  // Collect points from history + sessions
+  const byDate = {};
+  (historyData[dayKey]?.[exName] || []).forEach(h => {
+    const max = parseMaxKg(h.raw);
+    if (max !== null) byDate[h.date] = Math.max(byDate[h.date]||0, max);
   });
-  getSessions().forEach(s=>{
-    const arr=s.sets&&s.sets[exName];
-    if(arr){
-      const max=Math.max(...arr.filter(Boolean).map(Number).filter(n=>!isNaN(n)));
-      if(isFinite(max)) points.push({date:s.date,val:max,src:'session'});
-    }
+  sessionRows.filter(r => r[3] === exName).forEach(r => {
+    const max = Math.max(...[r[4],r[5],r[6]].map(Number).filter(n=>!isNaN(n)&&n>0));
+    if (isFinite(max)) byDate[r[1]] = Math.max(byDate[r[1]]||0, max);
   });
-  points.sort((a,b)=>a.date.localeCompare(b.date));
-  // Deduplicate by date (keep max)
-  const byDate={};
-  points.forEach(p=>{byDate[p.date]=Math.max(byDate[p.date]||0,p.val);});
-  const dates=Object.keys(byDate).sort();
-  const vals=dates.map(d=>byDate[d]);
 
-  if(chartInst){chartInst.destroy();chartInst=null;}
-  const ctx=document.getElementById('main-chart').getContext('2d');
-  const col=dayKey==='d1'?'#5bb8f5':dayKey==='d2'?'#f56b8b':'#f5b535';
-  chartInst=new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:dates.map(fmtDate),
-      datasets:[{label:'Max kg',data:vals,borderColor:col,backgroundColor:col+'22',
-        pointBackgroundColor:col,pointRadius:3,tension:.35,fill:true}]
+  const dates = Object.keys(byDate).sort();
+  const vals  = dates.map(d => byDate[d]);
+
+  if (chartInst) { chartInst.destroy(); chartInst = null; }
+  const col = dayKey==='d1' ? '#5bb8f5' : dayKey==='d2' ? '#f56b8b' : '#f5b535';
+  chartInst = new Chart(document.getElementById('main-chart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: dates.map(fmtDate),
+      datasets: [{ data: vals, borderColor: col, backgroundColor: col+'22',
+        pointBackgroundColor: col, pointRadius: 3, tension: .35, fill: true }]
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} kg`}}},
-      scales:{
-        x:{ticks:{color:'#666',font:{size:10},maxRotation:45,maxTicksLimit:8},grid:{color:'rgba(255,255,255,.05)'}},
-        y:{ticks:{color:'#666',font:{size:10}},grid:{color:'rgba(255,255,255,.05)'}}
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.y+' kg' } } },
+      scales: {
+        x: { ticks: { color:'#666', font:{size:10}, maxRotation:45, maxTicksLimit:8 }, grid: { color:'rgba(255,255,255,.05)' } },
+        y: { ticks: { color:'#666', font:{size:10} }, grid: { color:'rgba(255,255,255,.05)' } }
       }
     }
   });
 
-  // Stats
-  const maxV=vals.length?Math.max(...vals):0;
-  const firstV=vals.length?vals[0]:0;
-  const lastV=vals.length?vals[vals.length-1]:0;
-  const prog=firstV>0?Math.round((lastV-firstV)/firstV*100):0;
-  document.getElementById('st-max').textContent=maxV?maxV+' kg':'—';
-  document.getElementById('st-sess').textContent=dates.length||'—';
-  document.getElementById('st-prog').textContent=vals.length>1?(prog>0?'+':'')+prog+'%':'—';
+  const maxV = vals.length ? Math.max(...vals) : 0;
+  const prog = vals.length > 1 ? Math.round((vals[vals.length-1]-vals[0])/vals[0]*100) : null;
+  document.getElementById('st-max').textContent  = maxV ? maxV+' kg' : '—';
+  document.getElementById('st-sess').textContent = dates.length || '—';
+  document.getElementById('st-prog').textContent = prog !== null ? (prog>0?'+':'')+prog+'%' : '—';
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-function switchView(v){
-  curView=v;
-  ['log','sessions','graph'].forEach(x=>{
-    document.getElementById('view-'+x).style.display=x===v?'block':'none';
-    document.getElementById('nb-'+x).classList.toggle('active',x===v);
+function switchView(v) {
+  curView = v;
+  ['log','sessions','graph'].forEach(x => {
+    document.getElementById('view-'+x).style.display = x===v ? 'block' : 'none';
+    document.getElementById('nb-'+x).classList.toggle('active', x===v);
   });
-  if(v==='sessions')renderSessions();
-  if(v==='graph')renderGraphList();
+  if (v==='sessions') renderSessions();
+  if (v==='graph')    renderGraphList();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
-document.getElementById('hdr-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
-selDay('d1');
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function cssId(s)    { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+function fmtDate(iso){ return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
+function parseMaxKg(raw) {
+  if (!raw || raw==='done') return null;
+  const nums = raw.replace(/[()]/g,' ').match(/\d+(\.\d+)?/g);
+  return nums ? Math.max(...nums.map(Number)) : null;
+}
 </script>
 </body>
 </html>
