@@ -296,7 +296,7 @@ const API       = 'https://sheets.googleapis.com/v4/spreadsheets';
 let token       = null;
 let histData    = {d1:{}, d2:{}, d3:{}};
 let sessionRows = [];
-let curDay      = 'd1';
+let curDay      = (()=>{const d=new Date().getDay();return d===2?'d1':d===4?'d2':d===6?'d3':'d1';})();
 let curView     = 'log';
 let chartInst   = null;
 let modalSess   = null;
@@ -407,11 +407,26 @@ async function loadAll() {
     ]);
     histData = { d1: parseHist(r1), d2: parseHist(r2), d3: parseHist(r3) };
     sessionRows = rs.slice(1);
+    restoreTodayState();
     setSyncOk('Synced');
     selDay(curDay);
     if (curView==='sessions') renderSessions();
     if (curView==='graph')    renderGraphList();
   } catch(e) { setSyncErr('Error: '+e.message); }
+}
+
+// Pre-fill exState from any sessions already saved today
+function restoreTodayState() {
+  const today = new Date().toISOString().slice(0,10);
+  sessionRows.forEach(r => {
+    if (r[1] !== today) return;
+    const name = r[3];
+    if (!name) return;
+    // Only restore if not already in state (don't overwrite live edits)
+    if (!exState[name]) {
+      exState[name] = { s1:r[4]||'', s2:r[5]||'', s3:r[6]||'', note:r[7]||'', saved:true };
+    }
+  });
 }
 
 function parseHist(rows) {
@@ -427,6 +442,14 @@ function parseHist(rows) {
 }
 
 // ── LOG VIEW ──────────────────────────────────────────────────────────────────
+function todayDefaultDay() {
+  const dow = new Date().getDay(); // 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
+  if (dow === 2) return 'd1'; // Tuesday
+  if (dow === 4) return 'd2'; // Thursday
+  if (dow === 6) return 'd3'; // Saturday
+  return 'd1'; // fallback
+}
+
 function selDay(d) {
   curDay = d; openCard = null;
   ['d1','d2','d3'].forEach(x =>
