@@ -331,22 +331,24 @@ function onGsiLoad() {
 
 function tryReconnect() {
   try {
-    google.accounts.oauth2.initTokenClient({
+    const client = google.accounts.oauth2.initTokenClient({
       client_id: '281076985814-vq0vfa3jces2jlttd236jofhn9jo7v42.apps.googleusercontent.com',
-      scope: 'https://www.googleapis.com/auth/spreadsheets',
-      prompt: '',
-      hint: localStorage.getItem('lift_user') || '',
+      scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email',
+      prompt: 'none',  // never show UI — fail silently if can't auto-auth
+      login_hint: localStorage.getItem('lift_user') || '',
       callback: async (resp) => {
         if (resp.error) {
-          // Silent auth failed — show reconnect banner instead of full login
           showReconnectBanner();
           return;
         }
         token = resp.access_token;
+        const bar = document.getElementById('reconnect-bar');
+        if (bar) bar.style.display = 'none';
         showApp();
         await loadAll();
       }
-    }).requestAccessToken();
+    });
+    client.requestAccessToken();
   } catch(e) {
     showReconnectBanner();
   }
@@ -371,7 +373,7 @@ function showReconnectBanner() {
 <script>
 const CLIENT_ID = '281076985814-vq0vfa3jces2jlttd236jofhn9jo7v42.apps.googleusercontent.com';
 const SHEET_ID  = '1nddYAEfDluokRhQIt1LE372ZTBnEt72oPk6OIzz_7CU';
-const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
+const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.email';
 const API       = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let token       = null;
@@ -398,15 +400,17 @@ function signIn() {
     callback: async (resp) => {
       if (resp.error) { setSyncErr('Auth error'); return; }
       token = resp.access_token;
-      // Store email hint for silent re-auth next time
+      // Fetch email to use as login_hint for future silent re-auth
       try {
-        // Decode JWT to get email
-        const payload = JSON.parse(atob(resp.access_token.split('.')[1]||''));
-        if (payload.email) localStorage.setItem('lift_user', payload.email);
+        const ui = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+          {headers:{Authorization:'Bearer '+token}});
+        const info = await ui.json();
+        if (info.email) localStorage.setItem('lift_user', info.email);
       } catch(e) {}
       const bar = document.getElementById('reconnect-bar');
       if (bar) bar.style.display = 'none';
-      showApp(); await loadAll();
+      showApp();
+      await loadAll();
     }
   });
   client.requestAccessToken();
@@ -891,7 +895,9 @@ async function saveEx(name, silent=false) {
 
   const id = existingRow ? existingRow[0] : Date.now().toString();
   const newRowData = [id, today, curDay, name, ...sets, st.note||''];
-  const lastCol = colLetter(3 + sets.length);
+  // Columns: A=id, B=date, C=day, D=exercise, E..=sets, last=note
+  // 0-based last index = 4 + sets.length (0=A,1=B,2=C,3=D,4=E=first set, 4+N=note)
+  const lastCol = colLetter(4 + sets.length);
 
   try {
     if (existingRow) {
@@ -1106,8 +1112,11 @@ function openEditPanel(exIdx) {
   document.getElementById('edit-panel').style.display = 'block';
   document.getElementById('modal-tmpl-btn').style.display = 'none';
   renderEditSets();
-  // Scroll edit panel into view
-  document.getElementById('edit-panel').scrollIntoView({behavior:'smooth', block:'nearest'});
+  // Scroll modal to show edit panel
+  setTimeout(() => {
+    const modal = document.querySelector('.modal');
+    if (modal) modal.scrollTop = modal.scrollHeight;
+  }, 50);
 }
 
 function cancelEdit() {
@@ -1158,7 +1167,7 @@ async function saveEditedEx() {
 
   try {
     const matchRow = matchingRows[0];
-    const lastCol = colLetter(3 + sets.length);
+    const lastCol = colLetter(4 + sets.length);
     const newRowData = [matchRow[0], matchRow[1], matchRow[2], matchRow[3], ...sets, rawNote];
     const sheetRow = matchRow._sheetRow;
     await apiUpdate(`sessions!A${sheetRow}:${lastCol}${sheetRow}`, [newRowData]);
