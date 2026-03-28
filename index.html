@@ -417,7 +417,7 @@ async function apiUpdate(range, values) {
 async function apiClearRow(rowIndex) {
   // rowIndex is 0-based index in sessionRows → sheet row = rowIndex + 2 (header + 1-based)
   const sheetRow = rowIndex + 2;
-  const range = `sessions!A${sheetRow}:M${sheetRow}`;
+  const range = `sessions!A${sheetRow}:P${sheetRow}`;
   const r = await fetch(
     `${API}/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,
     {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
@@ -786,6 +786,18 @@ function maybeAutoSave(name) {
   if (!st.saved && (st.sets||[]).some(v=>v&&v.trim())) saveEx(name, true);
 }
 
+// Convert 0-based column index to A, B, ... Z, AA, AB, ...
+function colLetter(n) {
+  let s = '';
+  n += 1; // 1-based
+  while (n > 0) {
+    n--;
+    s = String.fromCharCode(65 + (n % 26)) + s;
+    n = Math.floor(n / 26);
+  }
+  return s;
+}
+
 async function saveEx(name, silent=false) {
   const st = exState[name] || {};
   const sets = (st.sets||[]).map(v=>(v||'').trim());
@@ -799,7 +811,7 @@ async function saveEx(name, silent=false) {
     r[1]===today && r[2]===curDay && r[3] && r[3].toLowerCase()===lc
   );
 
-  // Row: [id, date, day, exercise, set1, set2, ..., setN, note]
+  // Row: [id, date, day, exercise, set1..setN, note]
   const newRow = [
     existingIdx>=0 ? sessionRows[existingIdx][0] : Date.now().toString(),
     today, curDay, name,
@@ -807,8 +819,8 @@ async function saveEx(name, silent=false) {
     st.note||''
   ];
 
-  // Sheet range: A to the column for (4 + sets.length + 1) = sets+note
-  const lastCol = String.fromCharCode(65 + 3 + sets.length); // A=65, cols: A,B,C,D then sets then note
+  // cols: A=id, B=date, C=day, D=name, E..E+N=sets, next=note
+  const lastCol = colLetter(3 + sets.length); // 0-based: 0=A,1=B,2=C,3=D, then sets, then note
   try {
     if (existingIdx >= 0) {
       const sheetRow = existingIdx + 2;
@@ -823,6 +835,7 @@ async function saveEx(name, silent=false) {
     const old = document.getElementById('card-'+eid(name));
     if (old) old.replaceWith(renderExCard(name, null));
   } catch(e) {
+    console.error('saveEx error:', e);
     setSyncErr('Save failed: '+e.message);
   }
 }
@@ -1068,7 +1081,7 @@ async function saveEditedEx() {
 
   try {
     const {r, i: rowIdx} = matchingRows[0];
-    const lastCol = String.fromCharCode(65 + 3 + sets.length);
+    const lastCol = colLetter(3 + sets.length);
     const newRow = [r[0], r[1], r[2], r[3], ...sets, note];
     const sheetRow = rowIdx + 2;
     await apiUpdate(`sessions!A${sheetRow}:${lastCol}${sheetRow}`, [newRow]);
