@@ -113,6 +113,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 /* SET CONTROL */
 .set-ctrl-btn{padding:6px 14px;border:1px solid var(--b2);background:none;color:var(--t3);font-family:var(--mono);font-size:12px;border-radius:6px;cursor:pointer;transition:all .15s}
 .set-ctrl-btn:hover{border-color:var(--b3);color:var(--t2)}
+.del-day-btn{padding:10px 14px;border:1px solid rgba(245,107,139,.3);background:none;color:#f56b8b;font-family:var(--mono);font-size:12px;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.del-day-btn:hover{background:rgba(245,107,139,.1);border-color:#f56b8b}
 
 /* ADD SHEET (bottom sheet) */
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:150;display:flex;align-items:flex-end;justify-content:center}
@@ -303,16 +305,15 @@ const API       = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let token       = null;
 let histData    = {d1:{}, d2:{}, d3:{}};
+let dayLists    = {d1:[], d2:[], d3:[]}; // exercises per day from sheet tabs
 let sessionRows = [];
 let curDay      = (()=>{const d=new Date().getDay();return d===2?'d1':d===4?'d2':d===6?'d3':'d1';})();
 let curView     = 'log';
 let chartInst   = null;
 let modalSess   = null;
 let template    = null;
-// Per-exercise state for today: {name: {s1,s2,s3,note,saved}}
+// Per-exercise state for today: {name: {sets,note,saved}}
 let exState     = {};
-// Extra exercises added during session: {d1:[],d2:[],d3:[]}
-let extraEx     = {d1:[],d2:[],d3:[]};
 // Currently open card name
 let openCard    = null;
 
@@ -433,12 +434,18 @@ function isBinary(name)        { return !!exConfig(name).binary; }
 async function loadAll() {
   setSyncBusy('Loading…');
   try {
-    const [r1,r2,r3,rs] = await Promise.all([
+    const [r1,r2,r3,rs, l1,l2,l3] = await Promise.all([
       apiGet('d1_history!A:C'), apiGet('d2_history!A:C'),
-      apiGet('d3_history!A:C'), apiGet('sessions!A:M')  // A-M = up to 8 sets + note
+      apiGet('d3_history!A:C'), apiGet('sessions!A:M'),
+      apiGet('d1!A:A'), apiGet('d2!A:A'), apiGet('d3!A:A'),
     ]);
     histData = { d1: parseHist(r1), d2: parseHist(r2), d3: parseHist(r3) };
-    sessionRows = rs.slice(1).filter(r => r && r[0] && r[3]); // skip empty/cleared rows
+    sessionRows = rs.slice(1).filter(r => r && r[0] && r[3]);
+    dayLists = {
+      d1: l1.slice(1).map(r=>r[0]).filter(Boolean),
+      d2: l2.slice(1).map(r=>r[0]).filter(Boolean),
+      d3: l3.slice(1).map(r=>r[0]).filter(Boolean),
+    };
     restoreTodayState();
     setSyncOk('Synced');
     selDay(curDay);
@@ -516,12 +523,7 @@ function selDay(d) {
 }
 
 function exListForDay(d) {
-  const fromHist = Object.keys(histData[d]);
-  const extra = extraEx[d] || [];
-  // merge, keeping order, no duplicates
-  const seen = new Set(fromHist);
-  extra.forEach(e => { if (!seen.has(e)) { fromHist.push(e); seen.add(e); } });
-  return fromHist;
+  return dayLists[d] || [];
 }
 
 function renderLog() {
@@ -637,6 +639,7 @@ function renderExCard(name, container) {
         id="note-${eid(name)}">${st.note||''}</textarea>
       <div class="btn-row">
         <button class="save-btn">Save ✓</button>
+        <button class="del-day-btn" title="Remove from ${curDay.toUpperCase()} programme">🗑 Remove</button>
       </div>
       ${histHTML ? `<div class="hist-sec"><div class="hist-ttl">Recent</div>${histHTML}</div>` : ''}
     </div>`;
@@ -648,6 +651,7 @@ function renderExCard(name, container) {
     exState[name].note = e.target.value;
   });
   card.querySelector('.save-btn').addEventListener('click', () => saveEx(name));
+  card.querySelector('.del-day-btn').addEventListener('click', () => deleteExFromDay(name));
 
   if (binary) {
     card.querySelectorAll('.bin-btn').forEach(btn => {
@@ -689,7 +693,47 @@ function renderExCard(name, container) {
   return card;
 }
 
-function toggleCard(name) {
+async function deleteExFromDay(name) {
+  if (!confirm(`Remove "${name}" from your ${curDay.toUpperCase()} programme?\n\nThis also removes any entry saved today. History is kept.`)) return;
+  setSyncBusy('Removing…');
+  try {
+    const lc = name.toLowerCase();
+    const idx = dayLists[curDay].findIndex(n => n.toLowerCase()===lc);
+    if (idx >= 0) {
+      // Get sheetId for batchUpdate deleteDimension
+      const meta = await fetch(`${API}/${SHEET_ID}?fields=sheets(properties(sheetId,title))`,
+        {headers:{Authorization:'Bearer '+token}});
+      const metaJson = await meta.json();
+      const sheetMeta = metaJson.sheets.find(s => s.properties.title === curDay);
+      if (sheetMeta) {
+        const gid = sheetMeta.properties.sheetId;
+        const rowIdx = idx + 1; // 0-based; +1 skips header row
+        await fetch(`${API}/${SHEET_ID}:batchUpdate`, {
+          method:'POST',
+          headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+          body: JSON.stringify({requests:[{deleteDimension:{range:{
+            sheetId:gid, dimension:'ROWS', startIndex:rowIdx, endIndex:rowIdx+1
+          }}}]})
+        });
+      }
+      dayLists[curDay].splice(idx, 1);
+    }
+    // Clear today's session entry
+    const today = new Date().toISOString().slice(0,10);
+    const sessIdxs = sessionRows.map((r,i)=>({r,i}))
+      .filter(({r}) => r[1]===today && r[3] && r[3].toLowerCase()===lc);
+    for (const {i} of sessIdxs) await apiClearRow(i);
+    const toRemove = new Set(sessIdxs.map(x=>x.i));
+    sessionRows = sessionRows.filter((_,i) => !toRemove.has(i));
+    delete exState[name];
+
+    setSyncOk('Removed ✓');
+    openCard = null;
+    renderLog();
+  } catch(e) {
+    setSyncErr('Remove failed: '+e.message);
+  }
+}
   // Save previous open card if it has data
   if (openCard && openCard !== name) {
     maybeAutoSave(openCard);
@@ -779,13 +823,14 @@ function filterSheetList() {
 function renderSheetExList(q) {
   const c = document.getElementById('sheet-ex-list');
   c.innerHTML = '';
-  const curNames = new Set(exListForDay(curDay));
+  const curNames = new Set(dayLists[curDay].map(n=>n.toLowerCase()));
   const otherDays = ['d1','d2','d3'].filter(d=>d!==curDay);
   const seen = new Set();
   otherDays.forEach(d => {
-    Object.keys(histData[d]).forEach(name => {
-      if (!curNames.has(name) && !seen.has(name) && (!q||name.toLowerCase().includes(q))) {
-        seen.add(name);
+    dayLists[d].forEach(name => {
+      const lc = name.toLowerCase();
+      if (!curNames.has(lc) && !seen.has(lc) && (!q||lc.includes(q))) {
+        seen.add(lc);
         const div = document.createElement('div');
         div.className = 'sheet-ex-item';
         div.innerHTML = `<span>${name}</span><span class="sheet-ex-day ${d}">${d.toUpperCase()}</span>`;
@@ -799,20 +844,32 @@ function renderSheetExList(q) {
   }
 }
 
-function addNewExercise() {
+async function addNewExercise() {
   const name = document.getElementById('new-ex-name').value.trim();
   if (!name) return;
-  if (!extraEx[curDay].includes(name)) extraEx[curDay].push(name);
-  hideAddSheet();
-  openCard = name;
-  renderLog();
+  await addExToDay(name);
 }
 
-function addExFromOtherDay(name) {
-  if (!extraEx[curDay].includes(name)) extraEx[curDay].push(name);
-  hideAddSheet();
-  openCard = name;
-  renderLog();
+async function addExFromOtherDay(name) {
+  await addExToDay(name);
+}
+
+async function addExToDay(name) {
+  const lc = name.toLowerCase();
+  if (dayLists[curDay].some(n => n.toLowerCase()===lc)) {
+    hideAddSheet(); openCard = name; renderLog(); return;
+  }
+  setSyncBusy('Adding…');
+  try {
+    await apiAppend(`${curDay}!A:A`, [[name]]);
+    dayLists[curDay].push(name);
+    setSyncOk('Added ✓');
+    hideAddSheet();
+    openCard = name;
+    renderLog();
+  } catch(e) {
+    setSyncErr('Add failed: '+e.message);
+  }
 }
 
 // ── SESSIONS VIEW ─────────────────────────────────────────────────────────────
