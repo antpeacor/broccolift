@@ -161,9 +161,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .del-ex-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:4px;flex-shrink:0;line-height:1;margin-top:2px}
 .del-ex-btn:hover{color:#f56b8b}
 .edit-ex-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:4px;flex-shrink:0;line-height:1;margin-top:2px}
-.edit-ex-btn:hover{color:var(--ac)}
+.edit-ex-btn:hover{color:var(--t2)}
 
-/* GRAPH */
+.recap-btn{padding:4px 10px;border:1px solid var(--b2);background:none;color:var(--t3);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.recap-btn:hover{border-color:var(--b3);color:var(--t2)}
+.muscle-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.muscle-name{font-size:12px;color:var(--t2);width:100px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.muscle-bar-bg{flex:1;height:7px;background:var(--s2);border-radius:4px;overflow:hidden}
+.muscle-bar{height:7px;border-radius:4px;transition:width .6s cubic-bezier(.22,1,.36,1)}
+.muscle-pct{font-size:11px;font-family:var(--mono);color:var(--t3);width:36px;text-align:right;flex-shrink:0}
 .search-in{width:100%;padding:10px 14px;font-family:var(--mono);font-size:13px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1);margin-bottom:12px}
 .search-in:focus{outline:none;border-color:var(--b2)}
 .graph-ex-item{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;cursor:pointer;transition:border-color .15s}
@@ -513,11 +519,12 @@ function isBinary(name)        { return !!exConfig(name).binary; }
 async function loadAll() {
   setSyncBusy('Loading…');
   try {
-    const [rs, l1, l2, l3] = await Promise.all([
+    const [rs, l1, l2, l3, exSheet] = await Promise.all([
       apiGet('sessions!A:P').catch(e => { throw new Error('sessions: '+e.message); }),
       apiGet('d1!A:A').catch(e => { throw new Error('d1: '+e.message); }),
       apiGet('d2!A:A').catch(e => { throw new Error('d2: '+e.message); }),
       apiGet('d3!A:A').catch(e => { throw new Error('d3: '+e.message); }),
+      apiGet('exercises!A:K').catch(() => []), // optional — no crash if missing
     ]);
     sessionRows = rs.slice(1).map((r, i) => {
       if (!r || !r[0] || !r[3]) return null;
@@ -530,6 +537,8 @@ async function loadAll() {
       d2: l2.slice(1).map(r=>r[0]).filter(Boolean),
       d3: l3.slice(1).map(r=>r[0]).filter(Boolean),
     };
+    // Parse exercises sheet: row 0 = headers [exercise, Quads, Hamstrings, ...]
+    parseExerciseSheet(exSheet);
     restoreTodayState();
     setSyncOk('Synced');
     selDay(curDay);
@@ -979,6 +988,13 @@ async function addExToDay(name) {
   try {
     await apiAppend(`${curDay}!A:A`, [[name]]);
     dayLists[curDay].push(name);
+    // If not in exercises sheet, add placeholder row with equal scores
+    if (!muscleData[lc] && muscleGroups.length) {
+      const score = Math.round(100 / muscleGroups.length);
+      const row = [name, ...muscleGroups.map(() => score)];
+      await apiAppend('exercises!A:K', [row]).catch(()=>{}); // silent fail
+      muscleData[lc] = {name, scores: muscleGroups.map(()=>score), total: score*muscleGroups.length, unknown:true};
+    }
     setSyncOk('Added ✓');
     hideAddSheet();
     openCard = name;
@@ -988,16 +1004,119 @@ async function addExToDay(name) {
   }
 }
 
+// ── MUSCLE GROUPS ─────────────────────────────────────────────────────────────
+// muscleData: { 'exercise lc' -> { groups: ['Quads','Back',...], scores: [80,20,...] } }
+// muscleGroups: ordered list of group names from sheet header
+let muscleData   = {};
+let muscleGroups = [];
+
+function parseExerciseSheet(rows) {
+  muscleData   = {};
+  muscleGroups = [];
+  if (!rows || rows.length < 2) return;
+  // Row 0: [exercise, Quads, Hamstrings, ...]
+  const header = rows[0];
+  muscleGroups = header.slice(1).map(h => (h||'').toString().trim()).filter(Boolean);
+  rows.slice(1).forEach(r => {
+    if (!r || !r[0]) return;
+    const name = r[0].toString().trim();
+    if (!name) return;
+    const scores = muscleGroups.map((_, i) => parseFloat(r[i+1]) || 0);
+    const total  = scores.reduce((a,b)=>a+b,0);
+    muscleData[name.toLowerCase()] = { name, scores, total };
+  });
+}
+
+// Returns {groups, scores, total, unknown} for an exercise
+// unknown=true means it's not in the exercises sheet
+function exMuscleScores(exName) {
+  const lc = exName.toLowerCase().trim();
+  if (muscleData[lc]) return {...muscleData[lc], unknown: false};
+  // Not found → distribute 10 equally across all groups
+  const n = muscleGroups.length || 10;
+  const score = Math.round(100 / n);
+  return {
+    name: exName,
+    scores: muscleGroups.map(() => score),
+    total: score * n,
+    unknown: true,
+  };
+}
+
+// Muscle group colours (by index, cycles)
+const MUSCLE_COLORS = [
+  '#5bb8f5','#5bf5c5','#f5b535','#f56b8b',
+  '#c5f135','#b58bf5','#f5955b','#5b8bf5','#f5e05b','#5bf5a0'
+];
+function muscleColor(idx) { return MUSCLE_COLORS[idx % MUSCLE_COLORS.length]; }
+
+// Compute muscle stimulus for a list of exercise names
+// Returns [{group, pct, color, unknown}] — pct = fraction of max possible for that group
+function computeMuscleRecap(exerciseNames) {
+  if (!muscleGroups.length) return [];
+
+  const earned  = new Array(muscleGroups.length).fill(0);
+  const possible = new Array(muscleGroups.length).fill(0);
+  const hasUnknown = { val: false };
+
+  exerciseNames.forEach(name => {
+    const m = exMuscleScores(name);
+    if (m.unknown) hasUnknown.val = true;
+    m.scores.forEach((s, i) => { earned[i] += s; possible[i] += 100; });
+  });
+
+  return {
+    bars: muscleGroups.map((g, i) => ({
+      group: g,
+      pct: possible[i] > 0 ? Math.min(100, Math.round(earned[i] / possible[i] * 100)) : 0,
+      color: muscleColor(i),
+    })),
+    hasUnknown: hasUnknown.val,
+  };
+}
+
+// Show muscle recap modal for a session
+function showMuscleRecap(s) {
+  const exNames = s.exercises.map(e => e.name);
+  const recap = computeMuscleRecap(exNames);
+
+  document.getElementById('modal-ttl').textContent = 'Muscle recap — ' + fmtDate(s.date);
+  const body = document.getElementById('modal-body');
+  body.innerHTML = '';
+
+  if (!muscleGroups.length) {
+    body.innerHTML = '<div class="empty-state" style="padding:20px 0">No exercises sheet found.<br>Add an <b>exercises</b> tab to your Google Sheet.</div>';
+  } else {
+    const warning = recap.hasUnknown
+      ? `<div style="font-size:11px;color:var(--t3);margin-bottom:12px;padding:8px 10px;background:var(--s2);border-radius:6px">⚠️ Some exercises are not in the exercises sheet — please update it to indicate muscle groups.</div>`
+      : '';
+    body.innerHTML = warning + recap.bars.map(b => `
+      <div class="muscle-row" style="margin-bottom:10px">
+        <div class="muscle-name" style="width:100px">${b.group}</div>
+        <div class="muscle-bar-bg">
+          <div class="muscle-bar" style="width:${b.pct}%;background:${b.color}"></div>
+        </div>
+        <div class="muscle-pct">${b.pct}%</div>
+      </div>`).join('');
+  }
+
+  // Hide the template button, show close only
+  document.getElementById('modal-tmpl-btn').style.display = 'none';
+  document.getElementById('modal').style.display = 'flex';
+}
+
 // ── SESSIONS VIEW ─────────────────────────────────────────────────────────────
 function renderSessions() {
   const c = document.getElementById('sess-list');
+  // Clear muscle dashboard (no longer always shown)
+  const md = document.getElementById('muscle-dashboard');
+  if (md) md.innerHTML = '';
   c.innerHTML = '';
   if (!sessionRows.length) {
     c.innerHTML = '<div class="empty-state">No sessions yet.<br>Log exercises to see them here.</div>';
     return;
   }
 
-  // Group all exercises by date (merge all days)
   const byDate = {};
   sessionRows.forEach(r => {
     if (!byDate[r[1]]) byDate[r[1]] = {date:r[1], day:'', exercises:[], dayCounts:{}};
@@ -1005,7 +1124,6 @@ function renderSessions() {
     byDate[r[1]].dayCounts[r[2]] = (byDate[r[1]].dayCounts[r[2]]||0) + 1;
   });
 
-  // Pick dominant day (most exercises) for display tag
   Object.values(byDate).forEach(s => {
     s.day = Object.entries(s.dayCounts).sort((a,b)=>b[1]-a[1])[0][0];
   });
@@ -1016,11 +1134,20 @@ function renderSessions() {
     div.className = 'sess-card';
     div.innerHTML = `
       <div class="sess-top">
-        <div><div class="sess-name">${fmtDate(s.date)}</div>
-        <div class="sess-meta">${s.exercises.length} exercise${s.exercises.length!==1?'s':''}</div></div>
-        <span class="sess-tag ${s.day||''}">${(s.day||'').toUpperCase()}</span>
+        <div>
+          <div class="sess-name">${fmtDate(s.date)}</div>
+          <div class="sess-meta">${s.exercises.length} exercise${s.exercises.length!==1?'s':''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="recap-btn">Recap</button>
+          <span class="sess-tag ${s.day||''}">${(s.day||'').toUpperCase()}</span>
+        </div>
       </div>`;
-    div.onclick = () => showModal(s);
+    div.querySelector('.recap-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      showMuscleRecap(s);
+    });
+    div.addEventListener('click', () => showModal(s));
     c.appendChild(div);
   });
 }
@@ -1028,6 +1155,7 @@ function renderSessions() {
 function showModal(s) {
   modalSess = s;
   renderModalBody();
+  document.getElementById('modal-tmpl-btn').style.display = 'block';
   document.getElementById('modal').style.display = 'flex';
 }
 
