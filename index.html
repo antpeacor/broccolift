@@ -208,6 +208,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
       </div>
     </header>
     <div class="sync-bar"><div class="sync-dot busy" id="sync-dot"></div><span id="sync-msg">Connecting…</span></div>
+    <div id="reconnect-bar" style="display:none;align-items:center;gap:8px;margin-bottom:12px;padding:10px 14px;background:rgba(245,107,139,.1);border:1px solid rgba(245,107,139,.3);border-radius:var(--r)">
+      <span style="font-size:12px;color:#f56b8b;flex:1">Session expired</span>
+      <button onclick="reconnect()" style="padding:6px 14px;border:none;background:#f56b8b;color:#111;font-family:var(--sans);font-size:12px;font-weight:700;border-radius:6px;cursor:pointer">Reconnect</button>
+    </div>
 
     <div id="view-log">
       <div class="day-row">
@@ -288,6 +292,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
         <button class="set-ctrl-btn" onclick="editRemoveSet()">− set</button>
       </div>
       <textarea class="set-note" rows="1" id="edit-note" placeholder="Note (optional)"></textarea>
+      <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;font-size:13px;color:var(--t2)">
+        <input type="checkbox" id="edit-exclude" style="width:16px;height:16px;cursor:pointer">
+        Exclude from progress graph
+      </label>
       <div style="display:flex;gap:8px;margin-top:4px">
         <button class="save-btn" onclick="saveEditedEx()">Save ✓</button>
         <button onclick="cancelEdit()" style="padding:10px 14px;border:1px solid var(--b2);background:none;color:var(--t2);font-family:var(--mono);font-size:12px;border-radius:8px;cursor:pointer">Cancel</button>
@@ -315,22 +323,48 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 <script>
 function onGsiLoad() {
   initAuth();
-  const exp = localStorage.getItem('lift_exp');
-  if (!exp || Date.now() >= Number(exp)) return;
+  // If we have a stored email, try silent re-auth first
+  const email = localStorage.getItem('lift_user');
+  if (!email) return;
+  tryReconnect();
+}
+
+function tryReconnect() {
   try {
     google.accounts.oauth2.initTokenClient({
       client_id: '281076985814-vq0vfa3jces2jlttd236jofhn9jo7v42.apps.googleusercontent.com',
       scope: 'https://www.googleapis.com/auth/spreadsheets',
       prompt: '',
+      hint: localStorage.getItem('lift_user') || '',
       callback: async (resp) => {
-        if (resp.error) return;
+        if (resp.error) {
+          // Silent auth failed — show reconnect banner instead of full login
+          showReconnectBanner();
+          return;
+        }
         token = resp.access_token;
-        localStorage.setItem('lift_exp', Date.now() + (resp.expires_in - 60) * 1000);
         showApp();
         await loadAll();
       }
     }).requestAccessToken();
-  } catch(e) {}
+  } catch(e) {
+    showReconnectBanner();
+  }
+}
+
+function showReconnectBanner() {
+  // Show app shell with reconnect prompt instead of full auth screen
+  const email = localStorage.getItem('lift_user');
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('main-nav').style.display = 'flex';
+  document.getElementById('hdr-date').textContent =
+    new Date().toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+  // Show reconnect bar
+  const bar = document.getElementById('reconnect-bar');
+  if (bar) bar.style.display = 'flex';
+  document.getElementById('sync-dot').className = 'sync-dot err';
+  document.getElementById('sync-msg').textContent = 'Tap to reconnect';
 }
 </script>
 <script src="https://accounts.google.com/gsi/client" async defer onload="onGsiLoad()"></script>
@@ -341,7 +375,6 @@ const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets';
 const API       = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let token       = null;
-let histData    = {d1:{}, d2:{}, d3:{}};
 let dayLists    = {d1:[], d2:[], d3:[]}; // exercises per day from sheet tabs
 let sessionRows = [];
 let curDay      = (()=>{const d=new Date().getDay();return d===2?'d1':d===4?'d2':d===6?'d3':'d1';})();
@@ -365,7 +398,14 @@ function signIn() {
     callback: async (resp) => {
       if (resp.error) { setSyncErr('Auth error'); return; }
       token = resp.access_token;
-      localStorage.setItem('lift_exp', Date.now() + (resp.expires_in-60)*1000);
+      // Store email hint for silent re-auth next time
+      try {
+        // Decode JWT to get email
+        const payload = JSON.parse(atob(resp.access_token.split('.')[1]||''));
+        if (payload.email) localStorage.setItem('lift_user', payload.email);
+      } catch(e) {}
+      const bar = document.getElementById('reconnect-bar');
+      if (bar) bar.style.display = 'none';
       showApp(); await loadAll();
     }
   });
@@ -374,10 +414,18 @@ function signIn() {
 
 function signOut() {
   if (token) google.accounts.oauth2.revoke(token, ()=>{});
-  token = null; localStorage.removeItem('lift_exp');
+  token = null;
+  localStorage.removeItem('lift_user');
   document.getElementById('auth-screen').style.display = 'flex';
   document.getElementById('main-app').style.display    = 'none';
   document.getElementById('main-nav').style.display    = 'none';
+  const bar = document.getElementById('reconnect-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+function reconnect() {
+  setSyncBusy('Reconnecting…');
+  signIn();
 }
 
 function showApp() {
@@ -389,39 +437,49 @@ function showApp() {
 }
 
 // ── SHEETS ────────────────────────────────────────────────────────────────────
+function checkToken() {
+  if (!token) { showReconnectBanner(); throw new Error('Not authenticated'); }
+}
+function check401(r) {
+  if (r.status === 401) { token = null; showReconnectBanner(); throw new Error('Token expired'); }
+  if (!r.ok) throw new Error(r.status);
+}
+
 async function apiGet(range) {
+  checkToken();
   const r = await fetch(`${API}/${SHEET_ID}/values/${encodeURIComponent(range)}`,
     {headers:{Authorization:'Bearer '+token}});
-  if (!r.ok) throw new Error(r.status);
+  check401(r);
   return (await r.json()).values || [];
 }
 
 async function apiAppend(range, values) {
+  checkToken();
   const r = await fetch(
     `${API}/${SHEET_ID}/values/${encodeURIComponent(range)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
     {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
      body: JSON.stringify({values})});
-  if (!r.ok) throw new Error(r.status);
+  check401(r);
   return r.json();
 }
 
 async function apiUpdate(range, values) {
+  checkToken();
   const r = await fetch(
     `${API}/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=RAW`,
     {method:'PUT', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
      body: JSON.stringify({range, values})});
-  if (!r.ok) throw new Error(r.status);
+  check401(r);
   return r.json();
 }
 
-async function apiClearRow(rowIndex) {
-  // rowIndex is 0-based index in sessionRows → sheet row = rowIndex + 2 (header + 1-based)
-  const sheetRow = rowIndex + 2;
+async function apiClearRow(sheetRow) {
+  checkToken();
   const range = `sessions!A${sheetRow}:P${sheetRow}`;
   const r = await fetch(
     `${API}/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,
     {method:'POST', headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
-  if (!r.ok) throw new Error(r.status);
+  check401(r);
   return r.json();
 }
 
@@ -451,13 +509,16 @@ function isBinary(name)        { return !!exConfig(name).binary; }
 async function loadAll() {
   setSyncBusy('Loading…');
   try {
-    const [r1,r2,r3,rs, l1,l2,l3] = await Promise.all([
-      apiGet('d1_history!A:C'), apiGet('d2_history!A:C'),
-      apiGet('d3_history!A:C'), apiGet('sessions!A:M'),
+    const [rs, l1, l2, l3] = await Promise.all([
+      apiGet('sessions!A:P'),
       apiGet('d1!A:A'), apiGet('d2!A:A'), apiGet('d3!A:A'),
     ]);
-    histData = { d1: parseHist(r1), d2: parseHist(r2), d3: parseHist(r3) };
-    sessionRows = rs.slice(1).filter(r => r && r[0] && r[3]);
+    sessionRows = rs.slice(1).map((r, i) => {
+      if (!r || !r[0] || !r[3]) return null;
+      const row = [...r];
+      row._sheetRow = i + 2;
+      return row;
+    }).filter(Boolean);
     dayLists = {
       d1: l1.slice(1).map(r=>r[0]).filter(Boolean),
       d2: l2.slice(1).map(r=>r[0]).filter(Boolean),
@@ -471,30 +532,57 @@ async function loadAll() {
   } catch(e) { setSyncErr('Error: '+e.message); }
 }
 
-// Extract sets array from a session row (cols 4..N-1, last col is note)
+// Row layout: [id, date, day, exercise, set1, set2, ..., setN, note]
+// The note is ALWAYS stored as the very last element of the row.
+// Sets are everything between index 4 and the second-to-last element (inclusive).
+// If there is no note, the last element is the last set.
+// We distinguish note from set by checking if it matches the set pattern.
+const SET_PATTERN = /^[\d][\d\s\.\-\(\)\+at\/x]*$/i;
+
 function rowSets(r) {
-  const extra = r.slice(4);
-  // Last non-empty string-like value is note; everything before is sets
-  let noteIdx = -1;
-  for (let i = extra.length-1; i >= 0; i--) {
-    const v = (extra[i]||'').trim();
-    if (!v) continue;
-    if (/^[\d\s\.\-\(\)at+x]+$/i.test(v)) break; // looks like a set value
-    noteIdx = i; break;
+  const cols = r.slice(4).map(v => (v == null ? '' : String(v)).trim());
+  if (!cols.length) return [];
+  // If the last non-empty value doesn't look like a set, it's a note — exclude it
+  let end = cols.length;
+  for (let i = cols.length - 1; i >= 0; i--) {
+    if (!cols[i]) continue; // skip empty trailing
+    if (!SET_PATTERN.test(cols[i])) end = i; // note found at i
+    break;
   }
-  return (noteIdx>=0 ? extra.slice(0,noteIdx) : extra).map(v=>(v||'').trim()).filter(v=>v!=='');
+  return cols.slice(0, end).filter(v => v !== '');
 }
 
 function rowNote(r) {
-  const extra = r.slice(4);
-  for (let i = extra.length-1; i >= 0; i--) {
-    const v = (extra[i]||'').trim();
-    if (!v) continue;
-    if (!/^[\d\s\.\-\(\)at+x]+$/i.test(v)) return v;
+  const cols = r.slice(4).map(v => (v == null ? '' : String(v)).trim());
+  for (let i = cols.length - 1; i >= 0; i--) {
+    if (!cols[i]) continue;
+    if (!SET_PATTERN.test(cols[i])) {
+      // Strip [exclude] flag from display note
+      return cols[i].replace(/^\[exclude\]\s*/i, '').trim();
+    }
     break;
   }
   return '';
 }
+
+function rowRawNote(r) {
+  // Raw note including [exclude] flag
+  const cols = r.slice(4).map(v => (v == null ? '' : String(v)).trim());
+  for (let i = cols.length - 1; i >= 0; i--) {
+    if (!cols[i]) continue;
+    if (!SET_PATTERN.test(cols[i])) return cols[i];
+    break;
+  }
+  return '';
+}
+
+function rowExcluded(r) {
+  return /^\[exclude\]/i.test(rowRawNote(r));
+}
+
+// Canonical sheet row number for a sessionRow (1-based, accounts for header)
+// We store it as r._sheetRow when loading
+function rowSheetRow(r) { return r._sheetRow; }
 
 function rowToState(r) {
   return { sets: rowSets(r), note: rowNote(r), saved: true };
@@ -502,25 +590,18 @@ function rowToState(r) {
 
 function restoreTodayState() {
   const today = new Date().toISOString().slice(0,10);
+  // Build map of name -> latest row (by _sheetRow) for today
+  const todayRows = {};
   sessionRows.forEach(r => {
-    if (r[1] !== today) return;
-    const name = r[3]; if (!name) return;
+    if (r[1] !== today || !r[3]) return;
+    const name = r[3];
+    if (!todayRows[name] || r._sheetRow > todayRows[name]._sheetRow)
+      todayRows[name] = r;
+  });
+  Object.entries(todayRows).forEach(([name, r]) => {
     if (exState[name]) return; // don't overwrite live edits
-    const state = rowToState(r);
-    exState[name] = state;
+    exState[name] = rowToState(r);
   });
-}
-
-function parseHist(rows) {
-  const m = {};
-  rows.slice(1).forEach(r => {
-    if (!r[0]||!r[1]||!r[2]) return;
-    const n = r[0].trim();
-    if (!m[n]) m[n] = [];
-    m[n].push({date:r[1], raw:r[2]});
-  });
-  Object.keys(m).forEach(k => m[k].sort((a,b)=>a.date.localeCompare(b.date)));
-  return m;
 }
 
 // ── LOG VIEW ──────────────────────────────────────────────────────────────────
@@ -568,13 +649,8 @@ function renderExCard(name, container) {
   const cfg = exConfig(name);
   const binary = !!cfg.binary;
 
-  // Gather history entries
+  // Gather history entries from sessions only
   const histEntries = [];
-  ['d1','d2','d3'].forEach(d => {
-    Object.keys(histData[d]).forEach(k => {
-      if (k.toLowerCase()===lc) histData[d][k].forEach(e => histEntries.push({date:e.date,raw:e.raw}));
-    });
-  });
   sessionRows.forEach(r => {
     if (r[3] && r[3].toLowerCase()===lc) {
       const raw = rowSets(r).filter(Boolean).join(' · ');
@@ -735,13 +811,12 @@ async function deleteExFromDay(name) {
       }
       dayLists[curDay].splice(idx, 1);
     }
-    // Clear today's session entry
+    // Clear today's session entry using _sheetRow
     const today = new Date().toISOString().slice(0,10);
-    const sessIdxs = sessionRows.map((r,i)=>({r,i}))
-      .filter(({r}) => r[1]===today && r[3] && r[3].toLowerCase()===lc);
-    for (const {i} of sessIdxs) await apiClearRow(i);
-    const toRemove = new Set(sessIdxs.map(x=>x.i));
-    sessionRows = sessionRows.filter((_,i) => !toRemove.has(i));
+    const matching = sessionRows.filter(r => r[1]===today && r[3] && r[3].toLowerCase()===lc);
+    for (const r of matching) await apiClearRow(r._sheetRow);
+    const removed = new Set(matching.map(r=>r._sheetRow));
+    sessionRows = sessionRows.filter(r => !removed.has(r._sheetRow));
     delete exState[name];
 
     setSyncOk('Removed ✓');
@@ -807,28 +882,29 @@ async function saveEx(name, silent=false) {
   const today = new Date().toISOString().slice(0,10);
   const lc = name.toLowerCase();
 
-  const existingIdx = sessionRows.findIndex(r =>
+  // Find existing row for same exercise+day+date
+  const existingRow = sessionRows.find(r =>
     r[1]===today && r[2]===curDay && r[3] && r[3].toLowerCase()===lc
   );
 
-  // Row: [id, date, day, exercise, set1..setN, note]
-  const newRow = [
-    existingIdx>=0 ? sessionRows[existingIdx][0] : Date.now().toString(),
-    today, curDay, name,
-    ...sets,
-    st.note||''
-  ];
+  const id = existingRow ? existingRow[0] : Date.now().toString();
+  const newRowData = [id, today, curDay, name, ...sets, st.note||''];
+  const lastCol = colLetter(3 + sets.length);
 
-  // cols: A=id, B=date, C=day, D=name, E..E+N=sets, next=note
-  const lastCol = colLetter(3 + sets.length); // 0-based: 0=A,1=B,2=C,3=D, then sets, then note
   try {
-    if (existingIdx >= 0) {
-      const sheetRow = existingIdx + 2;
-      await apiUpdate(`sessions!A${sheetRow}:${lastCol}${sheetRow}`, [newRow]);
-      sessionRows[existingIdx] = newRow;
+    if (existingRow) {
+      const sheetRow = existingRow._sheetRow;
+      await apiUpdate(`sessions!A${sheetRow}:${lastCol}${sheetRow}`, [newRowData]);
+      // Update in place
+      const idx = sessionRows.indexOf(existingRow);
+      newRowData._sheetRow = sheetRow;
+      sessionRows[idx] = newRowData;
     } else {
-      await apiAppend(`sessions!A:${lastCol}`, [newRow]);
-      sessionRows.push(newRow);
+      await apiAppend(`sessions!A:${lastCol}`, [newRowData]);
+      // We don't know the exact sheet row after append — reload will fix _sheetRow
+      // Estimate: header=1, existing rows, +1
+      newRowData._sheetRow = sessionRows.length + 2;
+      sessionRows.push(newRowData);
     }
     exState[name] = {...st, sets, saved:true, _autoTimer:undefined};
     setSyncOk('Saved ✓');
@@ -917,7 +993,7 @@ function renderSessions() {
   const byDate = {};
   sessionRows.forEach(r => {
     if (!byDate[r[1]]) byDate[r[1]] = {date:r[1], day:'', exercises:[], dayCounts:{}};
-    byDate[r[1]].exercises.push({name:r[3], sets:rowSets(r), note:rowNote(r), day:r[2]});
+    byDate[r[1]].exercises.push({name:r[3], sets:rowSets(r), note:rowNote(r), day:r[2], excluded:rowExcluded(r)});
     byDate[r[1]].dayCounts[r[2]] = (byDate[r[1]].dayCounts[r[2]]||0) + 1;
   });
 
@@ -963,6 +1039,7 @@ function renderModalBody() {
           ${ex.day?`<span class="sess-tag ${ex.day}" style="font-size:9px;padding:1px 6px">${ex.day.toUpperCase()}</span>`:''}
         </div>
         <div class="modal-ex-sets">${ex.sets.filter(Boolean).join(' · ')}${ex.sets.some(Boolean)?' kg':''}</div>
+        ${ex.excluded?'<div style="font-size:10px;color:var(--t3)">🚫 excluded from graph</div>':''}
         ${ex.note?`<div class="modal-ex-note">${ex.note}</div>`:''}
       </div>
       <div style="display:flex;gap:2px;flex-shrink:0">
@@ -982,31 +1059,24 @@ async function deleteExFromSession(exIdx) {
 
   setSyncBusy('Deleting…');
   try {
-    // Find matching rows by date + day + name
-    const rowsForEx = sessionRows
-      .map((r,i) => ({r,i}))
-      .filter(({r}) =>
-        r[1]===s.date &&
-        (!ex.day || r[2]===ex.day) &&
-        r[3] && r[3].toLowerCase()===ex.name.toLowerCase()
-      );
+    const lc = ex.name.toLowerCase();
+    const matching = sessionRows.filter(r =>
+      r[1]===s.date &&
+      (!ex.day || r[2]===ex.day) &&
+      r[3] && r[3].toLowerCase()===lc
+    );
 
-    for (const {i} of rowsForEx) await apiClearRow(i);
-
-    const toRemove = new Set(rowsForEx.map(x=>x.i));
-    sessionRows = sessionRows.filter((_,i) => !toRemove.has(i));
+    for (const r of matching) await apiClearRow(r._sheetRow);
+    const removed = new Set(matching.map(r=>r._sheetRow));
+    sessionRows = sessionRows.filter(r => !removed.has(r._sheetRow));
     s.exercises.splice(exIdx, 1);
 
     const today = new Date().toISOString().slice(0,10);
     if (s.date === today) delete exState[ex.name];
 
     setSyncOk('Deleted ✓');
-
-    if (s.exercises.length === 0) {
-      hideModal();
-    } else {
-      renderModalBody();
-    }
+    if (s.exercises.length === 0) hideModal();
+    else renderModalBody();
     renderSessions();
     if (curView === 'log') renderLog();
   } catch(e) {
@@ -1027,6 +1097,10 @@ function openEditPanel(exIdx) {
   editSets = ex.sets.length ? [...ex.sets] : ['','',''];
   document.getElementById('edit-panel-title').textContent = 'Editing: ' + ex.name;
   document.getElementById('edit-note').value = ex.note || '';
+  // Check exclude state from raw note of matching sessionRow
+  const lc = ex.name.toLowerCase();
+  const matchR = sessionRows.find(r => r[1]===modalSess.date && r[3] && r[3].toLowerCase()===lc);
+  document.getElementById('edit-exclude').checked = matchR ? rowExcluded(matchR) : false;
   document.getElementById('edit-panel').style.display = 'block';
   document.getElementById('modal-tmpl-btn').style.display = 'none';
   renderEditSets();
@@ -1068,28 +1142,31 @@ async function saveEditedEx() {
   const sets = editSets.map(v=>(v||'').trim());
   if (!sets.some(Boolean)) { alert('Enter at least one set.'); return; }
   const note = document.getElementById('edit-note').value.trim();
+  const excluded = document.getElementById('edit-exclude').checked;
+  const rawNote = excluded ? '[exclude]' + (note ? ' ' + note : '') : note;
 
   setSyncBusy('Saving…');
   const lc = ex.name.toLowerCase();
 
   // Find the matching sessionRow(s)
   const matchingRows = sessionRows
-    .map((r,i) => ({r,i}))
-    .filter(({r}) => r[1]===s.date && (!ex.day||r[2]===ex.day) && r[3] && r[3].toLowerCase()===lc);
+    .filter(r => r[1]===s.date && (!ex.day||r[2]===ex.day) && r[3] && r[3].toLowerCase()===lc);
 
   if (!matchingRows.length) { setSyncErr('Row not found'); return; }
 
   try {
-    const {r, i: rowIdx} = matchingRows[0];
+    const matchRow = matchingRows[0];
     const lastCol = colLetter(3 + sets.length);
-    const newRow = [r[0], r[1], r[2], r[3], ...sets, note];
-    const sheetRow = rowIdx + 2;
-    await apiUpdate(`sessions!A${sheetRow}:${lastCol}${sheetRow}`, [newRow]);
-    sessionRows[rowIdx] = newRow;
+    const newRowData = [matchRow[0], matchRow[1], matchRow[2], matchRow[3], ...sets, rawNote];
+    const sheetRow = matchRow._sheetRow;
+    await apiUpdate(`sessions!A${sheetRow}:${lastCol}${sheetRow}`, [newRowData]);
+    newRowData._sheetRow = sheetRow;
+    const idx = sessionRows.indexOf(matchRow);
+    if (idx >= 0) sessionRows[idx] = newRowData;
 
     // Update in-memory modalSess
     ex.sets = sets;
-    ex.note = note;
+    ex.note = note; // display note (without [exclude] prefix)
 
     // Update exState if today
     const today = new Date().toISOString().slice(0,10);
@@ -1119,13 +1196,15 @@ function loadAsTemplate() {
 
 // Build a canonical name map: lowercase -> canonical (first seen, preserving case)
 function buildNameMap() {
-  const map = {}; // lowercase -> canonical name
+  const map = {};
+  // From day programme lists (canonical source for exercise names)
   ['d1','d2','d3'].forEach(day => {
-    Object.keys(histData[day]).forEach(name => {
+    dayLists[day].forEach(name => {
       const k = name.toLowerCase();
       if (!map[k]) map[k] = name;
     });
   });
+  // Also pick up anything only in sessions
   sessionRows.forEach(r => {
     if (!r[3]) return;
     const k = r[3].toLowerCase();
@@ -1134,56 +1213,38 @@ function buildNameMap() {
   return map;
 }
 
-// Get all history entries for an exercise (case-insensitive, all days + sessions)
-// Returns [{date, s1, s2, s3, note, isPartial}] sorted by date
-// s1/s2/s3 are the parsed max kg for each set (null if not present)
 function getAllEntries(canonicalName) {
   const lc = canonicalName.toLowerCase();
-  const byDate = {}; // date -> {s1,s2,s3,note,isPartial}
+  const byDate = {};
 
   function ensureDate(d) {
-    if (!byDate[d]) byDate[d] = {s1:null, s2:null, s3:null, note:'', isPartial:false};
+    if (!byDate[d]) byDate[d] = {s1:null, s2:null, s3:null, note:'', isPartial:false, excluded:false};
   }
 
-  // From history sheets — raw strings like "80-100-120", stored as one entry per session
-  // We don't know which is s1/s2/s3 from history, so split by dash for the 3 main values
-  ['d1','d2','d3'].forEach(day => {
-    Object.keys(histData[day]).forEach(name => {
-      if (name.toLowerCase() !== lc) return;
-      histData[day][name].forEach(h => {
-        ensureDate(h.date);
-        // Split raw into per-set parts by dash (top-level, not inside parens)
-        const parts = splitSets(h.raw);
-        parts.forEach((part, i) => {
-          if (i > 2) return;
-          const p = parseWeights(part);
-          if (p) {
-            const key = 's'+(i+1);
-            byDate[h.date][key] = p.maxKg;
-            if (p.isPartial) byDate[h.date].isPartial = true;
-          }
-        });
-      });
-    });
-  });
-
-  // From saved sessions — variable number of set columns
   sessionRows.forEach(r => {
     if (!r[3] || r[3].toLowerCase() !== lc) return;
     const d = r[1];
     ensureDate(d);
-    rowSets(r).forEach((v,i) => {
-      const p = parseWeights(v||'');
+
+    // Mark excluded if any row for this date is excluded
+    if (rowExcluded(r)) { byDate[d].excluded = true; return; }
+
+    rowSets(r).forEach((v, i) => {
+      if (i > 2) return; // graph shows up to 3 sets (s1, s2, s3)
+      const p = parseWeights(v || '');
       if (p) {
-        byDate[d]['s'+(i+1)] = p.maxKg;
+        byDate[d]['s' + (i + 1)] = p.maxKg;
         if (p.isPartial) byDate[d].isPartial = true;
       }
     });
     const note = rowNote(r);
-    if (note) byDate[d].note = byDate[d].note ? byDate[d].note+'; '+note : note;
+    if (note) byDate[d].note = byDate[d].note ? byDate[d].note + '; ' + note : note;
   });
 
-  return Object.keys(byDate).sort().map(d => ({date:d, ...byDate[d]}));
+  // Filter out excluded entries
+  return Object.keys(byDate).sort()
+    .filter(d => !byDate[d].excluded)
+    .map(d => ({date: d, ...byDate[d]}));
 }
 
 // Split "80-100-120(6 at 130)" into ["80","100","120(6 at 130)"]
@@ -1258,14 +1319,7 @@ function renderGraphList() {
     if (seen.has(lc)) return;
     seen.add(lc);
     if (q && !lc.includes(q)) return;
-    // Count total sessions across all days
-    let count = 0;
-    ['d1','d2','d3'].forEach(day => {
-      Object.keys(histData[day]).forEach(k => {
-        if (k.toLowerCase()===lc) count += histData[day][k].length;
-      });
-    });
-    count += sessionRows.filter(r => r[3] && r[3].toLowerCase()===lc).length;
+    const count = sessionRows.filter(r => r[3] && r[3].toLowerCase()===lc && !rowExcluded(r)).length;
     all.push({name, count});
   });
   all.sort((a,b)=>a.name.toLowerCase().localeCompare(b.name.toLowerCase())).forEach(x => {
