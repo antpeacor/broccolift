@@ -296,7 +296,28 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
   </button>
 </nav>
 
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+function onGsiLoad() {
+  initAuth();
+  const exp = localStorage.getItem('lift_exp');
+  if (!exp || Date.now() >= Number(exp)) return;
+  try {
+    google.accounts.oauth2.initTokenClient({
+      client_id: '281076985814-vq0vfa3jces2jlttd236jofhn9jo7v42.apps.googleusercontent.com',
+      scope: 'https://www.googleapis.com/auth/spreadsheets',
+      prompt: '',
+      callback: async (resp) => {
+        if (resp.error) return;
+        token = resp.access_token;
+        localStorage.setItem('lift_exp', Date.now() + (resp.expires_in - 60) * 1000);
+        showApp();
+        await loadAll();
+      }
+    }).requestAccessToken();
+  } catch(e) {}
+}
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="onGsiLoad()"></script>
 <script>
 const CLIENT_ID = '281076985814-vq0vfa3jces2jlttd236jofhn9jo7v42.apps.googleusercontent.com';
 const SHEET_ID  = '1nddYAEfDluokRhQIt1LE372ZTBnEt72oPk6OIzz_7CU';
@@ -350,26 +371,6 @@ function showApp() {
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
 }
-
-// silent re-auth on load
-window.addEventListener('load', () => {
-  initAuth();
-  const exp = localStorage.getItem('lift_exp');
-  if (!exp || Date.now() >= Number(exp)) return;
-  setTimeout(() => {
-    try {
-      google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID, scope: SCOPES, prompt:'',
-        callback: async (resp) => {
-          if (resp.error) return;
-          token = resp.access_token;
-          localStorage.setItem('lift_exp', Date.now() + (resp.expires_in-60)*1000);
-          showApp(); await loadAll();
-        }
-      }).requestAccessToken();
-    } catch(e) {}
-  }, 600);
-});
 
 // ── SHEETS ────────────────────────────────────────────────────────────────────
 async function apiGet(range) {
