@@ -253,7 +253,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
       <!-- Progress sub-tabs -->
       <div style="display:flex;gap:4px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:3px;margin-bottom:14px">
         <button class="tab-btn active" id="ptab-exercises" onclick="switchProgressTab('exercises')">Exercises</button>
-        <button class="tab-btn" id="ptab-muscles" onclick="switchProgressTab('muscles')">Muscles</button>
+        <button class="tab-btn" id="ptab-muscles" onclick="switchProgressTab('muscles')">Coverage</button>
+        <button class="tab-btn" id="ptab-load" onclick="switchProgressTab('load')">Load</button>
       </div>
       <!-- Exercises sub-view -->
       <div id="progress-exercises">
@@ -282,6 +283,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
       <!-- Muscles sub-view -->
       <div id="progress-muscles" style="display:none">
         <div id="muscle-heatmap"></div>
+      </div>
+      <!-- Load sub-view -->
+      <div id="progress-load" style="display:none">
+        <div id="load-heatmap"></div>
       </div>
     </div>
   </div>
@@ -1659,12 +1664,13 @@ function switchView(v) {
 }
 
 function switchProgressTab(tab) {
-  ['exercises','muscles'].forEach(t => {
+  ['exercises','muscles','load'].forEach(t => {
     document.getElementById('progress-'+t).style.display = t===tab?'block':'none';
     const btn = document.getElementById('ptab-'+t);
     if (btn) btn.classList.toggle('active', t===tab);
   });
   if (tab==='muscles') renderMuscleHeatmap();
+  if (tab==='load')    renderLoadHeatmap();
 }
 
 // ── MUSCLE HEATMAP ────────────────────────────────────────────────────────────
@@ -1852,6 +1858,221 @@ function renderMuscleHeatmap() {
     <div class="heatmap-card">
       <div class="heatmap-ttl">Muscle stimulus</div>
       <div class="heatmap-sub">Last ${weeks.length} weeks.</div>
+      <div style="overflow-x:auto;margin-top:10px">
+        <table class="heatmap-table">
+          <thead>${thead}</thead>
+          <tbody>${tbody}</tbody>
+        </table>
+      </div>
+      ${targetSection}
+    </div>`;
+}
+
+// ── LOAD HEATMAP ──────────────────────────────────────────────────────────────
+
+// Default reps per set (exercise-specific overrides)
+function defaultReps(exName) {
+  const lc = (exName||'').toLowerCase().trim();
+  if (lc === 'hip raise(8x4)' || lc === 'hip raise') return 8;
+  return 12;
+}
+
+// Parse load (kg × reps) from a single set string
+// Examples:
+//   "130"          → 12 × 130 = 1560
+//   "130(6+6)"     → 12 × 130 = 1560  (reps in parens = rep split, same weight)
+//   "20(6 at 25)"  → 6×20 + 6×25 = 120+150 = 270
+//   "done"         → 0
+function parseSetLoad(raw, defaultR) {
+  if (!raw || raw === 'done' || !raw.trim()) return 0;
+  const s = raw.trim();
+
+  // Check for "X(Y at Z)" pattern: Y reps at X, then (defaultR-Y) reps at Z... 
+  // Actually: "20(6 at 25)" = 6 reps at 20kg, 6 reps at 25kg
+  const atMatch = s.match(/^([\d.]+)\((\d+)\s+at\s+([\d.]+)\)$/i);
+  if (atMatch) {
+    const w1 = parseFloat(atMatch[1]);
+    const r1 = parseInt(atMatch[2]);
+    const w2 = parseFloat(atMatch[3]);
+    const r2 = defaultR - r1; // remaining reps at w2
+    return r1 * w1 + Math.max(0, r2) * w2;
+  }
+
+  // Check for "X(Y+Z)" pattern: Y+Z reps at X (still same weight, just split)
+  const splitMatch = s.match(/^([\d.]+)\((\d+)\+(\d+)\)$/);
+  if (splitMatch) {
+    const w = parseFloat(splitMatch[1]);
+    const reps = parseInt(splitMatch[2]) + parseInt(splitMatch[3]);
+    return reps * w;
+  }
+
+  // Plain number: "130" → defaultR × 130
+  const plain = parseFloat(s.replace(/[^\d.]/g,''));
+  if (!isNaN(plain) && plain > 0) return defaultR * plain;
+
+  return 0;
+}
+
+// Compute total load for a session row (sum across sets, weighted by muscle scores)
+// Returns array of load per muscle group index
+function rowMuscleLoad(r) {
+  if (!muscleGroups.length) return [];
+  const exName = r[3] || '';
+  const defReps = defaultReps(exName);
+  const sets = rowSets(r);
+  const totalLoad = sets.reduce((sum, s) => sum + parseSetLoad(s, defReps), 0);
+  const m = exMuscleScores(exName);
+  // Distribute load by muscle group score (scores sum to 100)
+  return m.scores.map(score => totalLoad * score / 100);
+}
+
+function renderLoadHeatmap() {
+  const c = document.getElementById('load-heatmap');
+  if (!c) return;
+
+  if (!muscleGroups.length) {
+    c.innerHTML = '<div class="empty-state">Add an <b>exercises</b> tab to your Google Sheet to enable load tracking.</div>';
+    return;
+  }
+
+  function weekKey(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    const mon = new Date(d);
+    mon.setDate(d.getDate() + diff);
+    return mon.toISOString().slice(0,10);
+  }
+
+  const weekSet = new Set();
+  sessionRows.forEach(r => { if (r[1]) weekSet.add(weekKey(r[1])); });
+  const weeks = [...weekSet].sort().reverse().slice(0, 8);
+
+  if (!weeks.length) {
+    c.innerHTML = '<div class="empty-state">No sessions yet.</div>';
+    return;
+  }
+
+  // Accumulate load per week per muscle group
+  const weekData = {};
+  weeks.forEach(w => { weekData[w] = new Array(muscleGroups.length).fill(0); });
+
+  sessionRows.forEach(r => {
+    if (!r[1] || !r[3] || rowExcluded(r)) return;
+    const wk = weekKey(r[1]);
+    if (!weekData[wk]) return;
+    const loads = rowMuscleLoad(r);
+    loads.forEach((v, i) => { weekData[wk][i] += v; });
+  });
+
+  // Normalise: lowest non-zero week per group = 100, others proportional
+  // If all weeks are 0 for a group, show 0
+  const groupMin = muscleGroups.map((_,gi) => {
+    const vals = weeks.map(w => weekData[w][gi]).filter(v => v > 0);
+    return vals.length ? Math.min(...vals) : 0;
+  });
+  const groupMax = muscleGroups.map((_,gi) =>
+    Math.max(...weeks.map(w => weekData[w][gi]), 1)
+  );
+
+  // Colour helpers (reuse same per-group colours)
+  function hexToRgb(hex) {
+    return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  }
+  const groupColors = muscleGroups.map((_,i) => hexToRgb(MUSCLE_COLORS[i % MUSCLE_COLORS.length]));
+
+  function cellBg(gi, val) {
+    if (val === 0) return 'var(--s2)';
+    const intensity = Math.min(1, val / groupMax[gi]);
+    const [r,g,b] = groupColors[gi];
+    const ri = Math.round(20 + intensity * (r-20));
+    const gi2 = Math.round(20 + intensity * (g-20));
+    const bi = Math.round(20 + intensity * (b-20));
+    return `rgb(${ri},${gi2},${bi})`;
+  }
+  function cellText(gi, val) {
+    return (val / groupMax[gi]) > 0.45 ? '#111' : 'rgba(255,255,255,0.35)';
+  }
+  function fmtWeek(iso) {
+    return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  }
+
+  const colW = Math.max(32, Math.floor(280 / weeks.length));
+
+  const thead = `<tr>
+    <th style="text-align:left;min-width:90px;padding-right:6px;font-size:10px;color:var(--t3);font-weight:400">Group</th>
+    ${weeks.map((w,i) => `<th style="font-size:10px;color:${i===0?'var(--t1)':'var(--t3)'};font-weight:${i===0?700:400};width:${colW}px;padding:2px 2px 6px">${i===0?'This week':fmtWeek(w)}</th>`).join('')}
+  </tr>`;
+
+  const tbody = muscleGroups.map((g,gi) => {
+    const [cr,cg,cb] = groupColors[gi];
+    const labelColor = `rgb(${cr},${cg},${cb})`;
+    const cells = weeks.map(w => {
+      const val = weekData[w][gi];
+      const bg  = cellBg(gi, val);
+      const tc  = cellText(gi, val);
+      // Normalised value: lowest week = 100
+      const norm = groupMin[gi] > 0 ? Math.round(val / groupMin[gi] * 100) : 0;
+      const label = norm > 0 ? norm : '';
+      return `<td class="hm-cell" title="${g}: ${Math.round(val)} kg·reps" style="background:${bg};color:${tc};font-size:9px">${label}</td>`;
+    }).join('');
+    return `<tr>
+      <td class="muscle-lbl" style="color:${labelColor};font-size:11px;font-weight:500">${g}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  // Last week vs average section (same logic as coverage)
+  const lastWeek = weeks[1];
+  const avgWeeks = weeks.slice(2);
+  let targetSection = '';
+
+  if (lastWeek) {
+    const avgVals = muscleGroups.map((_,gi) => {
+      const vals = avgWeeks.map(w => weekData[w][gi]).filter(v => v > 0);
+      return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+    });
+    const lastVals = muscleGroups.map((_,gi) => weekData[lastWeek][gi]);
+
+    const scaleLabels = `
+      <div style="display:flex;margin-bottom:8px;padding-left:98px;padding-right:48px">
+        <div style="flex:1;font-size:9px;color:var(--t3);text-align:left">0%</div>
+        <div style="flex:1;font-size:9px;color:var(--t3);text-align:center">100%</div>
+        <div style="flex:1;font-size:9px;color:var(--t3);text-align:right">200%+</div>
+      </div>`;
+
+    const bars = muscleGroups.map((g,gi) => {
+      const last = lastVals[gi];
+      const avg  = avgVals[gi];
+      const [cr,cg,cb] = groupColors[gi];
+      const col = `rgb(${cr},${cg},${cb})`;
+      const ratio = avg > 0 ? last/avg : (last > 0 ? 1 : 0);
+      const fillPct = Math.min(ratio * 50, 100);
+      const pct = Math.round(ratio * 100);
+      const label = avg===0 && last===0 ? '—' : avg===0 ? 'new' : pct+'%';
+      const barCol = ratio >= 0.9 ? col : '#f56b8b';
+      return `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <div style="width:90px;font-size:12px;font-weight:500;color:${col};flex-shrink:0">${g}</div>
+          <div style="flex:1;position:relative;height:6px;background:var(--s2);border-radius:3px">
+            <div style="position:absolute;left:0;top:0;height:6px;width:${fillPct}%;background:${barCol};border-radius:3px;opacity:0.85"></div>
+            <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:var(--s1);border:2px solid var(--t3)"></div>
+          </div>
+          <div style="font-size:11px;font-family:var(--mono);color:${barCol};width:40px;text-align:right;flex-shrink:0">${label}</div>
+        </div>`;
+    }).join('');
+
+    targetSection = `
+      <div style="border-top:1px solid var(--b1);margin-top:16px;padding-top:14px">
+        <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Last week vs. average</div>
+        ${scaleLabels}${bars}
+      </div>`;
+  }
+
+  c.innerHTML = `
+    <div class="heatmap-card">
+      <div class="heatmap-ttl">Training load</div>
+      <div class="heatmap-sub">Last ${weeks.length} weeks. Index: lowest week = 100.</div>
       <div style="overflow-x:auto;margin-top:10px">
         <table class="heatmap-table">
           <thead>${thead}</thead>
