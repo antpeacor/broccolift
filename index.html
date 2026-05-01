@@ -286,6 +286,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
             <select id="run-week-type" class="set-in" style="flex:1;padding:8px 10px;color:var(--t1)">
               <option value="W0">W0 — Recovery</option>
               <option value="W1">W1 — Base</option>
+              <option value="W4">W4 — Peak+</option>
               <option value="S">S — Special</option>
               <option value="W2">W2 — Build</option>
               <option value="W3">W3 — Peak</option>
@@ -663,6 +664,7 @@ async function loadAll() {
         _sheetRow:  i+2
       };
     }).filter(Boolean).sort((a,b)=>a.week_start.localeCompare(b.week_start));
+    console.log('runWeeks loaded:', runWeeks.length, runWeeks);
     const parseList = rows => (rows||[]).slice(1).map(r=>r&&r[0]).filter(Boolean);
     dayLists = {
       d1: parseList(l1),
@@ -2180,7 +2182,7 @@ function renderLoadHeatmap() {
 // ── RUN MODE ──────────────────────────────────────────────────────────────────
 const RUN_COLORS = {r1:'#c5f135', r2:'#f56b8b', r3:'#5bb8f5'};
 const RUN_LABELS = {r1:'Easy', r2:'Fast', r3:'Long'};
-const WTYPE_COLORS = {W0:'#f5b535', W1:'#c5f135', W2:'#5bb8f5', W3:'#b478ff', S:'#555'};
+const WTYPE_COLORS = {W0:'#f5b535', W1:'#c5f135', W2:'#5bb8f5', W3:'#b478ff', W4:'#f56b8b', S:'#555'};
 
 function weekMonday(dateStr) {
   const d = new Date((dateStr||new Date().toISOString().slice(0,10))+'T12:00:00');
@@ -2362,7 +2364,7 @@ function renderRunSessions() {
           <input type="number" step="0.1" value="${r.km.toFixed(1)}" onchange="editRunKm('${r.id}',this.value)"
             style="width:70px;font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b2);color:var(--t2);padding:4px 6px;border-radius:6px">
           <select onchange="editRunWeekType('${r.id}',this.value)" style="font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b2);color:${wtCol};padding:4px 6px;border-radius:6px">
-            ${['W0','W1','W2','W3','S'].map(x=>`<option value="${x}" ${r.week_type===x?'selected':''}>${x}</option>`).join('')}
+            ${['W0','W1','W2','W3','W4','S'].map(x=>`<option value="${x}" ${r.week_type===x?'selected':''}>${x}</option>`).join('')}
           </select>
           <button onclick="saveRunEdit('${r.id}')" style="padding:4px 10px;background:none;border:1px solid var(--ac);color:var(--ac);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer">Save</button>
         </div>
@@ -2409,61 +2411,95 @@ async function deleteRun(id) {
 }
 
 // ── UPDATE TARGETS (Update button) ────────────────────────────────────────────
+// Formula: W1=base, W2=W1*1.1, W3=W2*1.1, W4=W3*1.1, W0=prevPeak*0.75
+// prevPeak = last of W3/W4 seen in cycle
+// After S week: skip, don't advance base
+// New W1 base = min(actual km, target) of last non-S completed week
+
+function applyPeriodisation(weeks, startBase) {
+  // weeks: [{week_type, ...}] sorted ascending, future only
+  // returns map of week -> target
+  let cycleBase = startBase;
+  let prevPeak  = null; // last W3 or W4 target seen
+
+  for (const w of weeks) {
+    if (w.week_type === 'S') continue;
+    let target;
+    const t = w.week_type;
+    if (t === 'W1') {
+      target     = prevPeak !== null ? prevPeak : cycleBase;
+      cycleBase  = target;
+      prevPeak   = null; // reset peak tracker for new cycle
+    } else if (t === 'W2') {
+      target = Math.round(cycleBase * 1.1 * 10) / 10;
+    } else if (t === 'W3') {
+      target   = Math.round(cycleBase * 1.21 * 10) / 10;
+      prevPeak = target;
+    } else if (t === 'W4') {
+      target   = Math.round(cycleBase * 1.331 * 10) / 10;
+      prevPeak = target;
+    } else if (t === 'W0') {
+      target = prevPeak !== null
+        ? Math.round(prevPeak * 0.75 * 10) / 10
+        : Math.round(cycleBase * 0.75 * 10) / 10;
+    } else {
+      target = w.target_km || cycleBase; // unknown type: keep existing
+    }
+    w._newTarget = target;
+  }
+}
+
 async function updateRunTargets() {
-  if (!runWeeks.length) { setSyncErr('No running_weeks found'); return; }
+  if (!runWeeks.length) { setSyncErr('No weeks in running_weeks sheet — add rows first'); return; }
 
-  // Find last COMPLETED week (Monday < today)
-  const todayMon = weekMonday(new Date().toISOString().slice(0,10));
-  const pastWeeks = runWeeks.filter(w => w.week_start < todayMon && w.week_type !== 'S').sort((a,b)=>b.week_start.localeCompare(a.week_start));
-  if (!pastWeeks.length) { setSyncOk('No completed weeks yet'); return; }
-
-  const lastW = pastWeeks[0];
-
-  // Compute actual km for last completed week from runs
-  const actualKm = runRows
-    .filter(r => weekMonday(r.date) === lastW.week_start)
-    .reduce((s,r) => s+r.km, 0);
-  const roundedActual = Math.round(actualKm * 10) / 10;
-
-  // Update km_real for that week in sheet
   setSyncBusy('Updating…');
+  const todayMon = weekMonday(new Date().toISOString().slice(0,10));
+
   try {
-    await apiUpdate(`running_weeks!D${lastW._sheetRow}`, [[roundedActual]]);
-    lastW.km_real = roundedActual;
+    // Step 1: sync km_real for ALL past weeks from actual runs
+    const pastWeeks = runWeeks
+      .filter(w => w.week_start < todayMon)
+      .sort((a,b) => a.week_start.localeCompare(b.week_start));
 
-    // New base = min(actual, target)
-    const newBase = Math.min(roundedActual, lastW.target_km);
-
-    // Apply periodisation formula to all future weeks
-    // W1=base, W2=W1*1.1, W3=W2*1.1, W0=W3*0.75, then next cycle W1=W3...
-    const futureWeeks = runWeeks.filter(w => w.week_start >= todayMon)
-      .sort((a,b)=>a.week_start.localeCompare(b.week_start));
-
-    // Track running base for multi-cycle
-    let cycleBase = newBase;
-    let prevW3 = null;
-
-    for (const w of futureWeeks) {
-      if (w.week_type === 'S') continue; // skip special weeks
-      let target;
-      if (w.week_type === 'W1') {
-        target = prevW3 !== null ? prevW3 : cycleBase;
-        cycleBase = target;
-      } else if (w.week_type === 'W2') {
-        target = Math.round(cycleBase * 1.1 * 10) / 10;
-      } else if (w.week_type === 'W3') {
-        target = Math.round(cycleBase * 1.1 * 1.1 * 10) / 10;
-        prevW3 = target;
-      } else if (w.week_type === 'W0') {
-        target = prevW3 !== null ? Math.round(prevW3 * 0.75 * 10) / 10 : Math.round(cycleBase * 0.75 * 10) / 10;
-      } else {
-        target = cycleBase;
+    for (const w of pastWeeks) {
+      const actual = Math.round(
+        runRows.filter(r => weekMonday(r.date) === w.week_start)
+               .reduce((s,r) => s+r.km, 0) * 10
+      ) / 10;
+      if (actual !== w.km_real) {
+        await apiUpdate(`running_weeks!D${w._sheetRow}`, [[actual]]);
+        w.km_real = actual;
       }
-      w.target_km = target;
-      await apiUpdate(`running_weeks!C${w._sheetRow}`, [[target]]);
     }
 
-    setSyncOk(`Updated ✓ — base: ${cycleBase.toFixed(1)} km`);
+    // Step 2: find last non-S completed week to derive new base
+    const lastTrainingWeek = [...pastWeeks]
+      .reverse()
+      .find(w => w.week_type !== 'S');
+
+    if (!lastTrainingWeek) { setSyncOk('No completed training weeks yet'); return; }
+
+    const actual  = lastTrainingWeek.km_real;
+    const target  = lastTrainingWeek.target_km;
+    const newBase = target > 0 ? Math.min(actual, target) : actual;
+
+    // Step 3: recalculate all future weeks
+    const futureWeeks = runWeeks
+      .filter(w => w.week_start >= todayMon)
+      .sort((a,b) => a.week_start.localeCompare(b.week_start));
+
+    applyPeriodisation(futureWeeks, newBase);
+
+    for (const w of futureWeeks) {
+      if (w._newTarget === undefined) continue;
+      if (w._newTarget !== w.target_km) {
+        await apiUpdate(`running_weeks!C${w._sheetRow}`, [[w._newTarget]]);
+        w.target_km = w._newTarget;
+      }
+      delete w._newTarget;
+    }
+
+    setSyncOk(`Updated ✓ — new base: ${newBase.toFixed(1)} km`);
     renderRunHeatmap();
   } catch(e) { setSyncErr('Update failed: '+e.message); }
 }
