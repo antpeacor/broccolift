@@ -167,6 +167,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 
 .recap-btn{padding:4px 10px;border:1px solid var(--b2);background:none;color:var(--t3);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
 .recap-btn:hover{border-color:var(--b3);color:var(--t2)}
+.mode-active-lift{background:rgba(197,241,53,.15)!important;border-color:var(--ac)!important;color:var(--ac)!important}
+.mode-active-run{background:rgba(91,184,245,.15)!important;border-color:#5bb8f5!important;color:#5bb8f5!important}
+.rtype-btn{background:none;border:1px solid var(--b2);color:var(--t3);padding:8px 14px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer}
+.rtype-btn{flex:1;padding:9px 4px;border:1px solid var(--b2);background:none;color:var(--t3);font-family:var(--sans);font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;transition:all .15s;text-align:center}
+.rtype-btn.active-r1{background:rgba(80,200,80,.15);border-color:#50c850;color:#50c850}
+.rtype-btn.active-r2{background:rgba(245,107,139,.15);border-color:#f56b8b;color:#f56b8b}
+.rtype-btn.active-r3{background:rgba(91,184,245,.15);border-color:#5bb8f5;color:#5bb8f5}
 .tab-btn{flex:1;padding:8px;font-family:var(--sans);font-size:13px;font-weight:600;border:none;background:none;color:var(--t3);border-radius:8px;cursor:pointer;transition:all .15s}
 .tab-btn.active{background:var(--s2);color:var(--t1)}
 .muscle-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
@@ -235,21 +242,80 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
     </div>
 
     <div id="view-log">
-      <div class="day-row">
-        <div class="day-pill" id="pill-d1" onclick="selDay('d1')"><span class="dl">D1</span><span class="ds">Tuesday</span></div>
-        <div class="day-pill" id="pill-d2" onclick="selDay('d2')"><span class="dl">D2</span><span class="ds">Thursday</span></div>
-        <div class="day-pill" id="pill-d3" onclick="selDay('d3')"><span class="dl">D3</span><span class="ds">Saturday</span></div>
-        <div class="day-pill" id="pill-df" onclick="selDay('df')"><span class="dl">F</span><span class="ds">Free</span></div>
+      <!-- MODE SWITCHER -->
+      <div id="mode-switcher" style="display:flex;gap:6px;margin-bottom:12px">
+        <button id="mode-lift" onclick="switchMode('lift')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">🥦 Lift</button>
+        <button id="mode-run"  onclick="switchMode('run')"  style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">🏃 Run</button>
       </div>
-      <div id="ex-list"></div>
+      <!-- LIFT LOG -->
+      <div id="lift-log">
+        <div class="day-row">
+          <div class="day-pill" id="pill-d1" onclick="selDay('d1')"><span class="dl">D1</span><span class="ds">Tuesday</span></div>
+          <div class="day-pill" id="pill-d2" onclick="selDay('d2')"><span class="dl">D2</span><span class="ds">Thursday</span></div>
+          <div class="day-pill" id="pill-d3" onclick="selDay('d3')"><span class="dl">D3</span><span class="ds">Saturday</span></div>
+          <div class="day-pill" id="pill-df" onclick="selDay('df')"><span class="dl">F</span><span class="ds">Free</span></div>
+        </div>
+        <div id="ex-list"></div>
+      </div>
+      <!-- RUN LOG -->
+      <div id="run-log" style="display:none">
+        <!-- LOG FORM -->
+        <div class="chart-card" style="margin-bottom:14px">
+          <div style="font-family:var(--sans);font-size:15px;font-weight:700;margin-bottom:12px">Log a run</div>
+          <!-- Run type selector -->
+          <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Run type</div>
+          <div style="display:flex;gap:6px;margin-bottom:12px">
+            <button id="rtype-r1" onclick="selRunType('r1')" class="rtype-btn">🟢 Easy</button>
+            <button id="rtype-r2" onclick="selRunType('r2')" class="rtype-btn">🔴 Fast</button>
+            <button id="rtype-r3" onclick="selRunType('r3')" class="rtype-btn">🔵 Long</button>
+          </div>
+          <!-- Distance + date -->
+          <div style="display:flex;gap:10px;margin-bottom:10px">
+            <div style="flex:1">
+              <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Distance (km)</div>
+              <input id="run-km" type="number" step="0.1" min="0" placeholder="0.0" class="set-in" style="width:100%;font-size:18px;padding:10px 12px">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px">Date</div>
+              <input id="run-date" type="date" class="set-in" style="width:100%;padding:10px 12px;color:var(--t1)" onchange="onRunDateChange()">
+            </div>
+          </div>
+          <!-- Week type (auto-detected, overridable) -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <div style="font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap">Week type</div>
+            <select id="run-week-type" class="set-in" style="flex:1;padding:8px 10px;color:var(--t1)">
+              <option value="W0">W0 — Recovery</option>
+              <option value="W1">W1 — Base</option>
+              <option value="S">S — Special</option>
+              <option value="W2">W2 — Build</option>
+              <option value="W3">W3 — Peak</option>
+            </select>
+            <div style="font-size:10px;color:var(--t3)" id="run-week-hint"></div>
+          </div>
+          <button class="save-btn" style="width:100%" onclick="saveRun()">Save run ✓</button>
+        </div>
+        <!-- RECENT RUNS -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="sec-title" style="margin-bottom:0">Recent runs</div>
+        </div>
+        <div id="run-history"></div>
+      </div>
     </div>
 
     <div id="view-sessions" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <div class="sec-title" style="margin-bottom:0">Past sessions</div>
-        <button onclick="cleanDuplicates()" style="padding:5px 12px;border:1px solid var(--b2);background:none;color:var(--t3);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer" title="Remove duplicate exercise entries, keeping the one with most sets">Clean</button>
+      <!-- LIFT SESSIONS -->
+      <div id="lift-sessions">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="sec-title" style="margin-bottom:0">Past sessions</div>
+          <button onclick="cleanDuplicates()" style="padding:5px 12px;border:1px solid var(--b2);background:none;color:var(--t3);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer">Clean</button>
+        </div>
+        <div id="sess-list"></div>
       </div>
-      <div id="sess-list"></div>
+      <!-- RUN SESSIONS -->
+      <div id="run-sessions" style="display:none">
+        <div class="sec-title">Run history</div>
+        <div id="run-sess-list"></div>
+      </div>
     </div>
 
     <div id="view-graph" style="display:none">
@@ -258,6 +324,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
         <button class="tab-btn active" id="ptab-exercises" onclick="switchProgressTab('exercises')">Exercises</button>
         <button class="tab-btn" id="ptab-muscles" onclick="switchProgressTab('muscles')">Coverage</button>
         <button class="tab-btn" id="ptab-load" onclick="switchProgressTab('load')">Load</button>
+        <button class="tab-btn" id="ptab-run" onclick="switchProgressTab('run')" style="display:none">Running</button>
       </div>
       <!-- Exercises sub-view -->
       <div id="progress-exercises">
@@ -290,6 +357,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
       <!-- Load sub-view -->
       <div id="progress-load" style="display:none">
         <div id="load-heatmap"></div>
+      </div>
+      <!-- Run progress sub-view -->
+      <div id="progress-run" style="display:none">
+        <div id="run-heatmap"></div>
       </div>
     </div>
   </div>
@@ -419,16 +490,18 @@ const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.goog
 const API       = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let token       = null;
-let dayLists    = {d1:[], d2:[], d3:[], df:[]}; // exercises per day from sheet tabs
+let dayLists    = {d1:[], d2:[], d3:[], df:[]};
 let sessionRows = [];
+let runRows     = []; // [{id, date, day, km, week_type, _sheetRow}]
+let runWeeks    = []; // [{week_start, week_type, target_km, _sheetRow}] sorted asc
 let curDay      = (()=>{const d=new Date().getDay();return d===2?'d1':d===4?'d2':d===6?'d3':'d1';})();
 let curView     = 'log';
+let curMode     = localStorage.getItem('lift_mode') || 'lift';
+let curRunType  = 'r1';
 let chartInst   = null;
 let modalSess   = null;
 let template    = null;
-// Per-exercise state for today: {name: {sets,note,saved}}
 let exState     = {};
-// Currently open card name
 let openCard    = null;
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -560,13 +633,15 @@ function isBinary(name) {
 async function loadAll() {
   setSyncBusy('Loading…');
   try {
-    const [rs, l1, l2, l3, l4, exSheet] = await Promise.all([
+    const [rs, l1, l2, l3, l4, exSheet, runsSheet, runWeeksSheet] = await Promise.all([
       apiGet('sessions!A:P').catch(e => { throw new Error('sessions: '+e.message); }),
       apiGet('d1!A:A').catch(e => { throw new Error('d1: '+e.message); }),
       apiGet('d2!A:A').catch(e => { throw new Error('d2: '+e.message); }),
       apiGet('d3!A:A').catch(e => { throw new Error('d3: '+e.message); }),
-      apiGet('df!A:A').catch(() => []),  // optional free tab
+      apiGet('df!A:A').catch(() => []),
       apiGet('exercises!A:K').catch(() => []),
+      apiGet('runs!A:E').catch(() => []),
+      apiGet('running_weeks!A:D').catch(() => []),
     ]);
     sessionRows = rs.slice(1).map((r, i) => {
       if (!r || !r[0] || !r[3]) return null;
@@ -574,6 +649,20 @@ async function loadAll() {
       row._sheetRow = i + 2;
       return row;
     }).filter(Boolean);
+    runRows = (runsSheet||[]).slice(1).map((r,i) => {
+      if (!r || !r[0]) return null;
+      return {id:r[0], date:r[1]||'', day:r[2]||'r1', km:parseFloat(r[3])||0, week_type:r[4]||'W1', _sheetRow:i+2};
+    }).filter(Boolean);
+    runWeeks = (runWeeksSheet||[]).slice(1).map((r,i) => {
+      if (!r || !r[0]) return null;
+      return {
+        week_start: r[0],
+        week_type:  r[1]||'W1',
+        target_km:  parseFloat(r[2])||0,
+        km_real:    parseFloat(r[3])||0,
+        _sheetRow:  i+2
+      };
+    }).filter(Boolean).sort((a,b)=>a.week_start.localeCompare(b.week_start));
     const parseList = rows => (rows||[]).slice(1).map(r=>r&&r[0]).filter(Boolean);
     dayLists = {
       d1: parseList(l1),
@@ -581,10 +670,10 @@ async function loadAll() {
       d3: parseList(l3),
       df: parseList(l4),
     };
-    // Parse exercises sheet: row 0 = headers [exercise, Quads, Hamstrings, ...]
     parseExerciseSheet(exSheet);
     restoreTodayState();
     setSyncOk('Synced');
+    applyMode(curMode, false);
     selDay(curDay);
     if (curView==='sessions') renderSessions();
     if (curView==='graph')    renderGraphList();
@@ -1674,17 +1763,29 @@ function switchView(v) {
     document.getElementById('nb-'+x).classList.toggle('active', x===v);
   });
   if (v==='sessions') renderSessions();
-  if (v==='graph')    { renderGraphList(); switchProgressTab('exercises'); }
+  if (v==='graph') {
+    renderGraphList();
+    if (curMode==='run') {
+      const runTab = document.getElementById('ptab-run');
+      if (runTab) runTab.style.display = '';
+      switchProgressTab('run');
+    } else {
+      switchProgressTab('exercises');
+    }
+  }
+  if (v==='log' && curMode==='run') renderRunHistory();
 }
 
 function switchProgressTab(tab) {
-  ['exercises','muscles','load'].forEach(t => {
-    document.getElementById('progress-'+t).style.display = t===tab?'block':'none';
+  ['exercises','muscles','load','run'].forEach(t => {
+    const el = document.getElementById('progress-'+t);
+    if (el) el.style.display = t===tab?'block':'none';
     const btn = document.getElementById('ptab-'+t);
     if (btn) btn.classList.toggle('active', t===tab);
   });
   if (tab==='muscles') renderMuscleHeatmap();
   if (tab==='load')    renderLoadHeatmap();
+  if (tab==='run')     renderRunHeatmap();
 }
 
 // ── MUSCLE HEATMAP ────────────────────────────────────────────────────────────
@@ -2073,6 +2174,425 @@ function renderLoadHeatmap() {
         </table>
       </div>
       ${targetSection}
+    </div>`;
+}
+
+// ── RUN MODE ──────────────────────────────────────────────────────────────────
+const RUN_COLORS = {r1:'#c5f135', r2:'#f56b8b', r3:'#5bb8f5'};
+const RUN_LABELS = {r1:'Easy', r2:'Fast', r3:'Long'};
+const WTYPE_COLORS = {W0:'#f5b535', W1:'#c5f135', W2:'#5bb8f5', W3:'#b478ff', S:'#555'};
+
+function weekMonday(dateStr) {
+  const d = new Date((dateStr||new Date().toISOString().slice(0,10))+'T12:00:00');
+  const day = d.getDay();
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + (day===0?-6:1) - day);
+  return mon.toISOString().slice(0,10);
+}
+
+function fmtWeek(iso) {
+  return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+}
+
+function getWeekForDate(dateStr) {
+  const wk = weekMonday(dateStr);
+  return runWeeks.find(w => w.week_start === wk) || null;
+}
+
+function autoDetectWeekType() {
+  const today = new Date().toISOString().slice(0,10);
+  const wk = getWeekForDate(today);
+  if (!wk) return 'W1';
+  return wk.week_type === 'S' ? 'S' : wk.week_type;
+}
+
+function switchMode(mode) {
+  curMode = mode;
+  localStorage.setItem('lift_mode', mode);
+  applyMode(mode, true);
+}
+
+function applyMode(mode, rerender) {
+  const liftBtn = document.getElementById('mode-lift');
+  const runBtn  = document.getElementById('mode-run');
+  const baseStyle = 'display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:var(--t3)';
+  if (liftBtn) liftBtn.style.cssText = mode==='lift'
+    ? 'display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--ac);background:rgba(197,241,53,.12);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:var(--ac)'
+    : baseStyle;
+  if (runBtn)  runBtn.style.cssText  = mode==='run'
+    ? 'display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid #5bb8f5;background:rgba(91,184,245,.12);font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;color:#5bb8f5'
+    : baseStyle;
+
+  // Toggle lift/run views
+  const liftLog  = document.getElementById('lift-log');
+  const runLog   = document.getElementById('run-log');
+  const liftSess = document.getElementById('lift-sessions');
+  const runSess  = document.getElementById('run-sessions');
+  if (liftLog)  liftLog.style.display  = mode==='lift' ? 'block' : 'none';
+  if (runLog)   runLog.style.display   = mode==='run'  ? 'block' : 'none';
+  if (liftSess) liftSess.style.display = mode==='lift' ? 'block' : 'none';
+  if (runSess)  runSess.style.display  = mode==='run'  ? 'block' : 'none';
+
+  // Progress tab
+  const runTab = document.getElementById('ptab-run');
+  if (runTab) runTab.style.display = mode==='run' ? '' : 'none';
+  if (mode==='lift' && curView==='graph') {
+    const rp = document.getElementById('progress-run');
+    if (rp && rp.style.display !== 'none') switchProgressTab('exercises');
+  }
+
+  if (mode==='run' && rerender) {
+    const di = document.getElementById('run-date');
+    if (di) {
+      di.value = new Date().toISOString().slice(0,10);
+      onRunDateChange();
+    }
+    selRunType('r1');
+    renderRunHistory();
+    renderRunSessions();
+  }
+}
+
+function updateProgressTabs(mode) {} // kept for compat
+
+function selRunType(t) {
+  curRunType = t;
+  ['r1','r2','r3'].forEach(x => {
+    const btn = document.getElementById('rtype-'+x);
+    if (!btn) return;
+    const col = RUN_COLORS[x];
+    btn.style.cssText = x===t
+      ? `background:${col}22;border:1px solid ${col};color:${col};padding:8px 14px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer`
+      : `background:none;border:1px solid var(--b2);color:var(--t3);padding:8px 14px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer`;
+  });
+}
+
+function onRunDateChange() {
+  const date = document.getElementById('run-date').value;
+  if (!date) return;
+  const wk = getWeekForDate(date);
+  const sel = document.getElementById('run-week-type');
+  const hint = document.getElementById('run-week-hint');
+  if (wk) {
+    sel.value = wk.week_type;
+    if (hint) hint.textContent = `Target: ${wk.target_km} km`;
+  } else {
+    if (hint) hint.textContent = 'No plan found';
+  }
+}
+
+async function saveRun() {
+  const km        = parseFloat(document.getElementById('run-km').value);
+  const date      = document.getElementById('run-date').value;
+  const week_type = document.getElementById('run-week-type').value;
+  if (!km || km <= 0) { alert('Enter a distance.'); return; }
+  if (!date) { alert('Pick a date.'); return; }
+
+  setSyncBusy('Saving…');
+  const id  = Date.now().toString();
+  const row = [id, date, curRunType, km.toFixed(2), week_type];
+  try {
+    await apiAppend('runs!A:E', [row]);
+    const rs = await apiGet('runs!A:E').catch(()=>[]);
+    runRows = (rs||[]).slice(1).map((r,i) => {
+      if (!r||!r[0]) return null;
+      return {id:r[0], date:r[1]||'', day:r[2]||'r1', km:parseFloat(r[3])||0, week_type:r[4]||'W1', _sheetRow:i+2};
+    }).filter(Boolean);
+    setSyncOk('Saved ✓');
+    document.getElementById('run-km').value = '';
+    renderRunHistory();
+    renderRunSessions();
+    if (curView==='graph') renderRunHeatmap();
+  } catch(e) { setSyncErr('Save failed: '+e.message); }
+}
+
+function renderRunHistory() {
+  const c = document.getElementById('run-history');
+  if (!c) return;
+  const sorted = [...runRows].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  if (!sorted.length) {
+    c.innerHTML = '<div class="empty-state">No runs yet. Log your first one above!</div>';
+    return;
+  }
+  c.innerHTML = sorted.map(r => {
+    const col = RUN_COLORS[r.day]||'var(--t2)';
+    const wt  = r.week_type||'';
+    const wtCol = WTYPE_COLORS[wt]||'var(--t3)';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--b1)">
+        <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-family:var(--sans);font-size:14px;font-weight:600;color:var(--t1)">${r.km.toFixed(1)} km
+            <span style="font-size:11px;font-weight:400;color:${col};margin-left:4px">${RUN_LABELS[r.day]||r.day}</span>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmtDate(r.date)} · <span style="color:${wtCol}">${wt}</span></div>
+        </div>
+        <button onclick="deleteRun('${r.id}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:4px">🗑</button>
+      </div>`;
+  }).join('');
+}
+
+function renderRunSessions() {
+  const c = document.getElementById('run-sess-list');
+  if (!c) return;
+  const sorted = [...runRows].sort((a,b)=>b.date.localeCompare(a.date));
+  if (!sorted.length) {
+    c.innerHTML = '<div class="empty-state">No runs yet.</div>';
+    return;
+  }
+  c.innerHTML = sorted.map(r => {
+    const col   = RUN_COLORS[r.day]||'var(--t2)';
+    const wtCol = WTYPE_COLORS[r.week_type]||'var(--t3)';
+    return `
+      <div style="background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${col}"></div>
+          <div style="flex:1;font-family:var(--sans);font-size:14px;font-weight:700;color:var(--t1)">${r.km.toFixed(1)} km · ${RUN_LABELS[r.day]||r.day}</div>
+          <button onclick="deleteRun('${r.id}')" style="background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:2px">🗑</button>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <span style="font-size:11px;color:var(--t3)">${fmtDate(r.date)}</span>
+          <span style="font-size:11px;color:${wtCol};font-weight:600">${r.week_type}</span>
+        </div>
+        <!-- Edit inline -->
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <select onchange="editRunType('${r.id}',this.value)" style="font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b2);color:var(--t2);padding:4px 6px;border-radius:6px">
+            ${['r1','r2','r3'].map(x=>`<option value="${x}" ${r.day===x?'selected':''}>${RUN_LABELS[x]}</option>`).join('')}
+          </select>
+          <input type="number" step="0.1" value="${r.km.toFixed(1)}" onchange="editRunKm('${r.id}',this.value)"
+            style="width:70px;font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b2);color:var(--t2);padding:4px 6px;border-radius:6px">
+          <select onchange="editRunWeekType('${r.id}',this.value)" style="font-family:var(--mono);font-size:11px;background:var(--s2);border:1px solid var(--b2);color:${wtCol};padding:4px 6px;border-radius:6px">
+            ${['W0','W1','W2','W3','S'].map(x=>`<option value="${x}" ${r.week_type===x?'selected':''}>${x}</option>`).join('')}
+          </select>
+          <button onclick="saveRunEdit('${r.id}')" style="padding:4px 10px;background:none;border:1px solid var(--ac);color:var(--ac);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer">Save</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Pending edits buffer for run sessions
+const runEdits = {};
+function editRunType(id, v)     { if (!runEdits[id]) runEdits[id]={}; runEdits[id].day=v; }
+function editRunKm(id, v)       { if (!runEdits[id]) runEdits[id]={}; runEdits[id].km=parseFloat(v); }
+function editRunWeekType(id, v) { if (!runEdits[id]) runEdits[id]={}; runEdits[id].week_type=v; }
+
+async function saveRunEdit(id) {
+  const r = runRows.find(x=>x.id===id);
+  const e = runEdits[id];
+  if (!r || !e) return;
+  const updated = {...r, ...e};
+  setSyncBusy('Saving…');
+  try {
+    const row = [updated.id, updated.date, updated.day, updated.km.toFixed(2), updated.week_type];
+    await apiUpdate(`runs!A${r._sheetRow}:E${r._sheetRow}`, [row]);
+    Object.assign(r, updated);
+    delete runEdits[id];
+    setSyncOk('Saved ✓');
+    renderRunHistory();
+    renderRunSessions();
+    if (curView==='graph') renderRunHeatmap();
+  } catch(e) { setSyncErr('Save failed: '+e.message); }
+}
+
+async function deleteRun(id) {
+  const r = runRows.find(x=>x.id===id);
+  if (!r || !confirm('Delete this run?')) return;
+  setSyncBusy('Deleting…');
+  try {
+    await apiClearRow(r._sheetRow);
+    runRows = runRows.filter(x=>x.id!==id);
+    setSyncOk('Deleted ✓');
+    renderRunHistory();
+    renderRunSessions();
+    if (curView==='graph') renderRunHeatmap();
+  } catch(e) { setSyncErr('Delete failed: '+e.message); }
+}
+
+// ── UPDATE TARGETS (Update button) ────────────────────────────────────────────
+async function updateRunTargets() {
+  if (!runWeeks.length) { setSyncErr('No running_weeks found'); return; }
+
+  // Find last COMPLETED week (Monday < today)
+  const todayMon = weekMonday(new Date().toISOString().slice(0,10));
+  const pastWeeks = runWeeks.filter(w => w.week_start < todayMon && w.week_type !== 'S').sort((a,b)=>b.week_start.localeCompare(a.week_start));
+  if (!pastWeeks.length) { setSyncOk('No completed weeks yet'); return; }
+
+  const lastW = pastWeeks[0];
+
+  // Compute actual km for last completed week from runs
+  const actualKm = runRows
+    .filter(r => weekMonday(r.date) === lastW.week_start)
+    .reduce((s,r) => s+r.km, 0);
+  const roundedActual = Math.round(actualKm * 10) / 10;
+
+  // Update km_real for that week in sheet
+  setSyncBusy('Updating…');
+  try {
+    await apiUpdate(`running_weeks!D${lastW._sheetRow}`, [[roundedActual]]);
+    lastW.km_real = roundedActual;
+
+    // New base = min(actual, target)
+    const newBase = Math.min(roundedActual, lastW.target_km);
+
+    // Apply periodisation formula to all future weeks
+    // W1=base, W2=W1*1.1, W3=W2*1.1, W0=W3*0.75, then next cycle W1=W3...
+    const futureWeeks = runWeeks.filter(w => w.week_start >= todayMon)
+      .sort((a,b)=>a.week_start.localeCompare(b.week_start));
+
+    // Track running base for multi-cycle
+    let cycleBase = newBase;
+    let prevW3 = null;
+
+    for (const w of futureWeeks) {
+      if (w.week_type === 'S') continue; // skip special weeks
+      let target;
+      if (w.week_type === 'W1') {
+        target = prevW3 !== null ? prevW3 : cycleBase;
+        cycleBase = target;
+      } else if (w.week_type === 'W2') {
+        target = Math.round(cycleBase * 1.1 * 10) / 10;
+      } else if (w.week_type === 'W3') {
+        target = Math.round(cycleBase * 1.1 * 1.1 * 10) / 10;
+        prevW3 = target;
+      } else if (w.week_type === 'W0') {
+        target = prevW3 !== null ? Math.round(prevW3 * 0.75 * 10) / 10 : Math.round(cycleBase * 0.75 * 10) / 10;
+      } else {
+        target = cycleBase;
+      }
+      w.target_km = target;
+      await apiUpdate(`running_weeks!C${w._sheetRow}`, [[target]]);
+    }
+
+    setSyncOk(`Updated ✓ — base: ${cycleBase.toFixed(1)} km`);
+    renderRunHeatmap();
+  } catch(e) { setSyncErr('Update failed: '+e.message); }
+}
+
+// ── RUN PROGRESS CHART ────────────────────────────────────────────────────────
+function renderRunHeatmap() {
+  const c = document.getElementById('run-heatmap');
+  if (!c) return;
+
+  // Build week list: past weeks with data + 8 future weeks from today
+  const todayMon = weekMonday(new Date().toISOString().slice(0,10));
+
+  // All weeks with actual runs
+  const runWeekSet = new Set();
+  runRows.forEach(r => { if (r.date) runWeekSet.add(weekMonday(r.date)); });
+
+  // Add 8 weeks from today (including this week)
+  for (let i=0; i<8; i++) {
+    const d = new Date(todayMon+'T12:00:00');
+    d.setDate(d.getDate() + i*7);
+    runWeekSet.add(d.toISOString().slice(0,10));
+  }
+
+  // Merge with runWeeks plan weeks
+  runWeeks.forEach(w => runWeekSet.add(w.week_start));
+
+  // Sort all weeks desc, show last 8 past + 8 future
+  const allWeeks = [...runWeekSet].sort();
+  const todayIdx = allWeeks.indexOf(todayMon);
+  const startIdx = Math.max(0, todayIdx - 7);
+  const weeks    = allWeeks.slice(startIdx, todayIdx + 8);
+
+  if (!weeks.length) { c.innerHTML = '<div class="empty-state">No data yet.</div>'; return; }
+
+  // Actual km per run type per week
+  const weekData = {};
+  weeks.forEach(w => { weekData[w] = {r1:0, r2:0, r3:0}; });
+  runRows.forEach(r => {
+    const wk = weekMonday(r.date);
+    if (weekData[wk]) weekData[wk][r.day||'r1'] += r.km;
+  });
+
+  // Plan data per week
+  const planMap = {};
+  runWeeks.forEach(w => { planMap[w.week_start] = w; });
+
+  const maxKm = Math.max(...weeks.map(w => {
+    const d = weekData[w];
+    const plan = planMap[w];
+    return Math.max((d.r1+d.r2+d.r3), plan ? plan.target_km : 0);
+  }), 1);
+
+  const TRACK_H = 28; // px per bar track
+
+  const bars = weeks.map(w => {
+    const d       = weekData[w];
+    const plan    = planMap[w];
+    const total   = d.r1 + d.r2 + d.r3;
+    const target  = plan ? plan.target_km : 0;
+    const wtype   = plan ? plan.week_type : '';
+    const isCur   = w === todayMon;
+    const isFut   = w > todayMon;
+    const wtCol   = WTYPE_COLORS[wtype] || 'var(--t3)';
+    const label   = isCur ? 'This week' : fmtWeek(w);
+    const labelCol = isCur ? 'var(--t1)' : (isFut ? 'var(--t3)' : 'var(--t2)');
+
+    // Stacked bar: r1 + r2 + r3
+    const r1w = Math.round(d.r1/maxKm*100);
+    const r2w = Math.round(d.r2/maxKm*100);
+    const r3w = Math.round(d.r3/maxKm*100);
+
+    // Target line position
+    const tgtPct = target > 0 ? Math.round(target/maxKm*100) : 0;
+
+    // Week type badge
+    const badge = wtype
+      ? `<span style="font-size:9px;font-weight:700;color:${wtCol};border:1px solid ${wtCol};border-radius:4px;padding:1px 5px;margin-left:5px">${wtype}</span>`
+      : '';
+
+    // Total label
+    const totalLabel = total > 0 ? `${total.toFixed(1)}km` : (isFut && target > 0 ? `↗${target}km` : '');
+    const totalCol   = total > 0 ? 'var(--t2)' : 'var(--t3)';
+
+    return `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+        <div style="width:80px;flex-shrink:0">
+          <div style="font-size:10px;color:${labelCol};font-weight:${isCur?700:400}">${label}${badge}</div>
+        </div>
+        <div style="flex:1;position:relative;height:${TRACK_H}px;background:var(--s2);border-radius:5px;overflow:visible">
+          <!-- Stacked bars -->
+          <div style="position:absolute;left:0;top:0;height:100%;display:flex;border-radius:5px;overflow:hidden;width:100%">
+            <div style="width:${r1w}%;background:${RUN_COLORS.r1};opacity:${isFut?0.2:0.85}"></div>
+            <div style="width:${r2w}%;background:${RUN_COLORS.r2};opacity:${isFut?0.2:0.85}"></div>
+            <div style="width:${r3w}%;background:${RUN_COLORS.r3};opacity:${isFut?0.2:0.85}"></div>
+          </div>
+          <!-- Target line -->
+          ${tgtPct>0?`<div style="position:absolute;left:${tgtPct}%;top:-3px;bottom:-3px;width:2px;background:${wtCol};border-radius:1px;opacity:0.9"></div>`:''}
+        </div>
+        <div style="width:52px;text-align:right;font-size:11px;font-family:var(--mono);color:${totalCol};flex-shrink:0">${totalLabel}</div>
+      </div>`;
+  }).join('');
+
+  // Stats
+  const totalKm    = runRows.reduce((s,r)=>s+r.km,0);
+  const pastWeeksWithRuns = weeks.filter(w => w < todayMon && (weekData[w].r1+weekData[w].r2+weekData[w].r3)>0);
+  const avgKm      = pastWeeksWithRuns.length
+    ? pastWeeksWithRuns.reduce((s,w)=>{const d=weekData[w];return s+d.r1+d.r2+d.r3;},0)/pastWeeksWithRuns.length
+    : 0;
+
+  // Legend
+  const legend = ['r1','r2','r3'].map(t =>
+    `<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t3)">
+      <div style="width:8px;height:8px;border-radius:2px;background:${RUN_COLORS[t]}"></div>${RUN_LABELS[t]}
+    </div>`).join('');
+
+  c.innerHTML = `
+    <div class="heatmap-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="heatmap-ttl">Weekly distance</div>
+        <button onclick="updateRunTargets()" style="padding:5px 12px;border:1px solid var(--ac);background:none;color:var(--ac);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer">Update targets ↻</button>
+      </div>
+      <div class="heatmap-sub">Past weeks + 8 weeks ahead · coloured line = target</div>
+      <div style="display:flex;gap:12px;margin:10px 0 14px">
+        <div class="stat-box" style="flex:1"><div class="stat-val" style="color:#5bb8f5">${totalKm.toFixed(1)}</div><div class="stat-lbl">Total km</div></div>
+        <div class="stat-box" style="flex:1"><div class="stat-val" style="color:#5bb8f5">${runRows.length}</div><div class="stat-lbl">Runs</div></div>
+        <div class="stat-box" style="flex:1"><div class="stat-val" style="color:#5bb8f5">${avgKm.toFixed(1)}</div><div class="stat-lbl">Avg km/wk</div></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:12px">${legend}</div>
+      ${bars}
     </div>`;
 }
 
