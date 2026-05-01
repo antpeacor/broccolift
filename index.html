@@ -56,13 +56,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .signout-btn:hover{color:var(--t2)}
 
 /* DAY PILLS */
-.day-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
-.day-pill{padding:12px 6px;border:1px solid var(--b1);background:var(--s1);border-radius:var(--r);cursor:pointer;text-align:center;transition:all .15s;user-select:none}
-.day-pill .dl{font-family:var(--sans);font-size:17px;font-weight:700;display:block;margin-bottom:1px}
-.day-pill .ds{font-size:10px;color:var(--t3)}
+.day-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:16px}
+.day-pill{padding:10px 4px;border:1px solid var(--b1);background:var(--s1);border-radius:var(--r);cursor:pointer;text-align:center;transition:all .15s;user-select:none}
+.day-pill .dl{font-family:var(--sans);font-size:15px;font-weight:700;display:block;margin-bottom:1px}
+.day-pill .ds{font-size:9px;color:var(--t3)}
 .day-pill.on-d1{background:var(--d1b);border-color:var(--d1)}.day-pill.on-d1 .dl{color:var(--d1)}
 .day-pill.on-d2{background:var(--d2b);border-color:var(--d2)}.day-pill.on-d2 .dl{color:var(--d2)}
 .day-pill.on-d3{background:var(--d3b);border-color:var(--d3)}.day-pill.on-d3 .dl{color:var(--d3)}
+.day-pill.on-df{background:rgba(180,120,255,.15);border-color:#b478ff}.day-pill.on-df .dl{color:#b478ff}
 
 /* EXERCISE CARD */
 .ex-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);margin-bottom:8px;overflow:hidden;transition:border-color .2s}
@@ -130,6 +131,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .sheet-ex-day.d1{background:var(--d1b);color:var(--d1)}
 .sheet-ex-day.d2{background:var(--d2b);color:var(--d2)}
 .sheet-ex-day.d3{background:var(--d3b);color:var(--d3)}
+.sheet-ex-day.df{background:rgba(180,120,255,.15);color:#b478ff}
 .new-ex-row{display:flex;gap:8px}
 .new-ex-in{flex:1;padding:10px 12px;font-family:var(--mono);font-size:13px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;color:var(--t1)}
 .new-ex-in:focus{outline:none;border-color:var(--b2)}
@@ -145,7 +147,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .sess-name{font-family:var(--sans);font-size:14px;font-weight:700}
 .sess-meta{font-size:11px;color:var(--t3);margin-top:3px}
 .sess-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700}
-.sess-tag.d1{background:var(--d1b);color:var(--d1)}.sess-tag.d2{background:var(--d2b);color:var(--d2)}.sess-tag.d3{background:var(--d3b);color:var(--d3)}
+.sess-tag.d1{background:var(--d1b);color:var(--d1)}.sess-tag.d2{background:var(--d2b);color:var(--d2)}.sess-tag.d3{background:var(--d3b);color:var(--d3)}.sess-tag.df{background:rgba(180,120,255,.15);color:#b478ff}
 .empty-state{text-align:center;padding:40px 0;color:var(--t3);font-size:13px;line-height:1.9}
 
 /* MODAL */
@@ -189,7 +191,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
 .graph-ex-item:hover{border-color:var(--b2)}
 .graph-ex-nm{font-family:var(--sans);font-size:14px;font-weight:700}
 .graph-day-tag{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:3px;display:inline-block}
-.graph-day-tag.d1{background:var(--d1b);color:var(--d1)}.graph-day-tag.d2{background:var(--d2b);color:var(--d2)}.graph-day-tag.d3{background:var(--d3b);color:var(--d3)}
+.graph-day-tag.d1{background:var(--d1b);color:var(--d1)}.graph-day-tag.d2{background:var(--d2b);color:var(--d2)}.graph-day-tag.d3{background:var(--d3b);color:var(--d3)}.graph-day-tag.df{background:rgba(180,120,255,.15);color:#b478ff}
 .back-btn{display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--t2);font-family:var(--mono);font-size:13px;cursor:pointer;padding:0;margin-bottom:14px}
 .chart-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px;margin-bottom:12px}
 .chart-ttl{font-family:var(--sans);font-size:16px;font-weight:700;margin-bottom:2px}
@@ -237,6 +239,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
         <div class="day-pill" id="pill-d1" onclick="selDay('d1')"><span class="dl">D1</span><span class="ds">Tuesday</span></div>
         <div class="day-pill" id="pill-d2" onclick="selDay('d2')"><span class="dl">D2</span><span class="ds">Thursday</span></div>
         <div class="day-pill" id="pill-d3" onclick="selDay('d3')"><span class="dl">D3</span><span class="ds">Saturday</span></div>
+        <div class="day-pill" id="pill-df" onclick="selDay('df')"><span class="dl">F</span><span class="ds">Free</span></div>
       </div>
       <div id="ex-list"></div>
     </div>
@@ -416,7 +419,7 @@ const SCOPES    = 'https://www.googleapis.com/auth/spreadsheets https://www.goog
 const API       = 'https://sheets.googleapis.com/v4/spreadsheets';
 
 let token       = null;
-let dayLists    = {d1:[], d2:[], d3:[]}; // exercises per day from sheet tabs
+let dayLists    = {d1:[], d2:[], d3:[], df:[]}; // exercises per day from sheet tabs
 let sessionRows = [];
 let curDay      = (()=>{const d=new Date().getDay();return d===2?'d1':d===4?'d2':d===6?'d3':'d1';})();
 let curView     = 'log';
@@ -546,18 +549,24 @@ function exConfig(name) {
   return EX_CONFIG[name.toLowerCase().trim()] || {};
 }
 function defaultSetCount(name) { return exConfig(name).defaultSets || 3; }
-function isBinary(name)        { return !!exConfig(name).binary; }
+function isBinary(name) {
+  if (exConfig(name).binary) return true;
+  // All F-day exercises are binary (done/not done)
+  if (curDay === 'df') return true;
+  return false;
+}
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
 async function loadAll() {
   setSyncBusy('Loading…');
   try {
-    const [rs, l1, l2, l3, exSheet] = await Promise.all([
+    const [rs, l1, l2, l3, l4, exSheet] = await Promise.all([
       apiGet('sessions!A:P').catch(e => { throw new Error('sessions: '+e.message); }),
       apiGet('d1!A:A').catch(e => { throw new Error('d1: '+e.message); }),
       apiGet('d2!A:A').catch(e => { throw new Error('d2: '+e.message); }),
       apiGet('d3!A:A').catch(e => { throw new Error('d3: '+e.message); }),
-      apiGet('exercises!A:K').catch(() => []), // optional — no crash if missing
+      apiGet('df!A:A').catch(() => []),  // optional free tab
+      apiGet('exercises!A:K').catch(() => []),
     ]);
     sessionRows = rs.slice(1).map((r, i) => {
       if (!r || !r[0] || !r[3]) return null;
@@ -565,10 +574,12 @@ async function loadAll() {
       row._sheetRow = i + 2;
       return row;
     }).filter(Boolean);
+    const parseList = rows => (rows||[]).slice(1).map(r=>r&&r[0]).filter(Boolean);
     dayLists = {
-      d1: l1.slice(1).map(r=>r[0]).filter(Boolean),
-      d2: l2.slice(1).map(r=>r[0]).filter(Boolean),
-      d3: l3.slice(1).map(r=>r[0]).filter(Boolean),
+      d1: parseList(l1),
+      d2: parseList(l2),
+      d3: parseList(l3),
+      df: parseList(l4),
     };
     // Parse exercises sheet: row 0 = headers [exercise, Quads, Hamstrings, ...]
     parseExerciseSheet(exSheet);
@@ -663,7 +674,7 @@ function todayDefaultDay() {
 
 function selDay(d) {
   curDay = d; openCard = null;
-  ['d1','d2','d3'].forEach(x =>
+  ['d1','d2','d3','df'].forEach(x =>
     document.getElementById('pill-'+x).className = 'day-pill'+(x===d?' on-'+d:''));
   renderLog();
 }
@@ -678,7 +689,10 @@ function renderLog() {
   c.innerHTML = '';
 
   if (!names.length) {
-    c.innerHTML = '<div class="empty-state"><span class="spinner"></span>Loading…</div>';
+    const msg = curDay === 'df'
+      ? 'Add exercises to your <b>F</b> tab in Google Sheets.'
+      : '<span class="spinner"></span>Loading…';
+    c.innerHTML = `<div class="empty-state">${msg}</div>`;
     return;
   }
 
@@ -1002,7 +1016,7 @@ function renderSheetExList(q) {
   const c = document.getElementById('sheet-ex-list');
   c.innerHTML = '';
   const curNames = new Set(dayLists[curDay].map(n=>n.toLowerCase()));
-  const otherDays = ['d1','d2','d3'].filter(d=>d!==curDay);
+  const otherDays = ['d1','d2','d3','df'].filter(d=>d!==curDay);
   const seen = new Set();
   otherDays.forEach(d => {
     dayLists[d].forEach(name => {
@@ -1437,7 +1451,7 @@ function loadAsTemplate() {
 function buildNameMap() {
   const map = {};
   // From day programme lists (canonical source for exercise names)
-  ['d1','d2','d3'].forEach(day => {
+  ['d1','d2','d3','df'].forEach(day => {
     dayLists[day].forEach(name => {
       const k = name.toLowerCase();
       if (!map[k]) map[k] = name;
