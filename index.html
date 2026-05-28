@@ -618,11 +618,14 @@ const EX_CONFIG = {
   'hip raise':     { defaultSets: 4 },
   'hip raise(8x4)':{ defaultSets: 4 },
   'ab finisher':   { binary: true },
+  'ab wheel':      { repsOnly: true },
+  'ab wheel rollout': { repsOnly: true },
 };
 function exConfig(name) {
   return EX_CONFIG[name.toLowerCase().trim()] || {};
 }
 function defaultSetCount(name) { return exConfig(name).defaultSets || 3; }
+function isRepsOnly(name) { return !!(exConfig(name).repsOnly); }
 function isBinary(name) {
   if (exConfig(name).binary) return true;
   // All F-day exercises are binary (done/not done)
@@ -652,7 +655,9 @@ async function loadAll() {
     }).filter(Boolean);
     runRows = (runsSheet||[]).slice(1).map((r,i) => {
       if (!r || !r[0]) return null;
-      return {id:r[0], date:r[1]||'', day:r[2]||'r1', km:parseFloat(r[3])||0, week_type:r[4]||'W1', _sheetRow:i+2};
+      const rawWt = (r[4]||'').toString().trim();
+      const wt = /^[01234]$/.test(rawWt) ? 'W'+rawWt : (rawWt||'W1');
+      return {id:r[0], date:r[1]||'', day:r[2]||'r1', km:parseFloat(r[3])||0, week_type:wt, _sheetRow:i+2};
     }).filter(Boolean);
     runWeeks = (runWeeksSheet||[]).slice(1).map((r,i) => {
       if (!r || !r[0]) return null;
@@ -801,6 +806,7 @@ function renderExCard(name, container) {
   const lc = name.toLowerCase();
   const cfg = exConfig(name);
   const binary = !!cfg.binary;
+  const repsOnly = isRepsOnly(name);
 
   // Gather history entries from sessions only
   const histEntries = [];
@@ -855,12 +861,12 @@ function renderExCard(name, container) {
     const setsHTML = st.sets.map((v,i) => `
       <div class="set-wrap">
         <div class="set-n">Set ${i+1}</div>
-        <input class="set-in${v?' filled':''}" type="text"
-          id="si-${eid(name)}-${i}" value="${esc(v)}" placeholder="—"
+        <input class="set-in${v?' filled':''}" type="${repsOnly?'number':'text'}"
+          id="si-${eid(name)}-${i}" value="${esc(v)}" placeholder="${repsOnly?'0':'—'}"
           data-idx="${i}">
       </div>`).join('');
     bodyHTML = `
-      <div class="sets-lbl">Today's sets (kg)</div>
+      <div class="sets-lbl">Today's sets (${repsOnly ? 'reps' : 'kg'})</div>
       <div class="sets-g" id="sets-g-${eid(name)}">${setsHTML}</div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <button class="set-ctrl-btn" data-action="add">+ set</button>
@@ -1332,7 +1338,7 @@ function renderModalBody() {
           <div class="modal-ex-nm">${ex.name}</div>
           ${ex.day?`<span class="sess-tag ${ex.day}" style="font-size:9px;padding:1px 6px">${ex.day.toUpperCase()}</span>`:''}
         </div>
-        <div class="modal-ex-sets">${ex.sets.filter(Boolean).join(' · ')}${ex.sets.some(Boolean)?' kg':''}</div>
+        <div class="modal-ex-sets">${ex.sets.filter(Boolean).join(' · ')}${ex.sets.some(Boolean)?(isRepsOnly(ex.name)?' reps':' kg'):''}</div>
         ${ex.excluded?'<div style="font-size:10px;color:var(--t3)">🚫 excluded from graph</div>':''}
         ${ex.note?`<div class="modal-ex-note">${ex.note}</div>`:''}
       </div>
@@ -2298,7 +2304,9 @@ async function saveRun() {
     const rs = await apiGet('runs!A:E').catch(()=>[]);
     runRows = (rs||[]).slice(1).map((r,i) => {
       if (!r||!r[0]) return null;
-      return {id:r[0], date:r[1]||'', day:r[2]||'r1', km:parseFloat(r[3])||0, week_type:r[4]||'W1', _sheetRow:i+2};
+      const rawWt = (r[4]||'').toString().trim();
+      const wt = /^[01234]$/.test(rawWt) ? 'W'+rawWt : (rawWt||'W1');
+      return {id:r[0], date:r[1]||'', day:r[2]||'r1', km:parseFloat(r[3])||0, week_type:wt, _sheetRow:i+2};
     }).filter(Boolean);
     setSyncOk('Saved ✓');
     document.getElementById('run-km').value = '';
@@ -2483,21 +2491,23 @@ async function updateRunTargets() {
     const target  = lastTrainingWeek.target_km;
     const newBase = target > 0 ? Math.min(actual, target) : actual;
 
-    // Step 3: recalculate all future weeks
+    // Step 3: recalculate NEXT week only (the first non-S week after today)
     const futureWeeks = runWeeks
       .filter(w => w.week_start >= todayMon)
       .sort((a,b) => a.week_start.localeCompare(b.week_start));
 
+    // Find current week in runWeeks to get its type for formula context
+    // Apply periodisation but only write back the NEXT week's target
     applyPeriodisation(futureWeeks, newBase);
 
-    for (const w of futureWeeks) {
-      if (w._newTarget === undefined) continue;
-      if (w._newTarget !== w.target_km) {
-        await apiUpdate(`running_weeks!C${w._sheetRow}`, [[w._newTarget]]);
-        w.target_km = w._newTarget;
-      }
-      delete w._newTarget;
+    // Only update the first non-S future week
+    const nextWeek = futureWeeks.find(w => w.week_type !== 'S' && w._newTarget !== undefined);
+    if (nextWeek && nextWeek._newTarget !== nextWeek.target_km) {
+      await apiUpdate(`running_weeks!C${nextWeek._sheetRow}`, [[nextWeek._newTarget]]);
+      nextWeek.target_km = nextWeek._newTarget;
     }
+    // Clean up temp property
+    futureWeeks.forEach(w => delete w._newTarget);
 
     setSyncOk(`Updated ✓ — new base: ${newBase.toFixed(1)} km`);
     renderRunHeatmap();
