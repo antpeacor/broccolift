@@ -1814,8 +1814,9 @@ function renderBinaryCalendar(exName) {
     sessionRows
       .filter(r => r[3] && r[3].toLowerCase()===lc)
       .filter(r => {
-        const sets = rowSets(r);
-        return sets.some(s => s && s.toLowerCase()==='yes');
+        // Binary exercises store 'yes' in any set column or as note
+        // Check raw row from col 4 onward
+        return r.slice(4).some(v => v && String(v).toLowerCase()==='yes');
       })
       .map(r => r[1])
   );
@@ -1847,9 +1848,9 @@ function renderBinaryCalendar(exName) {
     const col   = done ? '#111' : (isToday ? 'var(--t1)' : 'var(--t3)');
     const border = isToday ? '1px solid var(--t2)' : '1px solid transparent';
     cells += `
-      <div style="aspect-ratio:1;border-radius:50%;background:${bg};border:${border};
+      <div style="width:36px;height:36px;border-radius:50%;background:${bg};border:${border};
         display:flex;align-items:center;justify-content:center;
-        font-size:11px;font-family:var(--mono);color:${col}">
+        font-size:12px;font-family:var(--mono);color:${col};margin:2px auto">
         ${d}
       </div>`;
   }
@@ -1875,7 +1876,7 @@ function renderBinaryCalendar(exName) {
       <button onclick="shiftCalendar('${exName}',1)" ${!canGoForward?'disabled style="opacity:.3"':'style="cursor:pointer"'}
         style="background:none;border:1px solid var(--b2);color:var(--t2);padding:5px 12px;border-radius:6px;font-size:14px">›</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:4px 0">
       ${headerCells}
       ${cells}
     </div>
