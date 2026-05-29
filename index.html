@@ -635,9 +635,10 @@ function defaultSetCount(name) {
 }
 function isRepsOnly(name) { const u = exUnit(name); return u === 'reps' || u === 's'; }
 function isBinary(name) {
-  if (name.toLowerCase().trim() === 'ab finisher') return true;
-  if (exUnit(name) === 'binary') return true;
-  if (curDay === 'df') return true;
+  const u = exUnit(name);
+  if (u === 'binary') return true;
+  // F-tab exercises are binary ONLY if they have no known unit (not in exercises sheet)
+  if (curDay === 'df' && !muscleData[name.toLowerCase().trim()]) return true;
   return false;
 }
 function exUnitLabel(name) {
