@@ -818,8 +818,7 @@ function renderLog() {
 
 function renderExCard(name, container) {
   const lc = name.toLowerCase();
-  const cfg = exConfig(name);
-  const binary = !!cfg.binary;
+  const binary   = isBinary(name);
   const repsOnly = isRepsOnly(name);
 
   // Gather history entries from sessions only
