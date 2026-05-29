@@ -342,9 +342,9 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
             </div>
             <div class="chart-sub" id="gd-sub"></div>
             <div class="chart-wrap"><canvas id="main-chart"></canvas></div>
-            <div class="stat-row">
-              <div class="stat-box"><div class="stat-val" id="st-max">—</div><div class="stat-lbl">Max kg</div></div>
-              <div class="stat-box"><div class="stat-val" id="st-min">—</div><div class="stat-lbl">Min kg</div></div>
+            <div class="stat-row" id="stat-row-wrap">
+              <div class="stat-box"><div class="stat-val" id="st-max">—</div><div class="stat-lbl">Max</div></div>
+              <div class="stat-box"><div class="stat-val" id="st-min">—</div><div class="stat-lbl">Min</div></div>
               <div class="stat-box"><div class="stat-val" id="st-sess">—</div><div class="stat-lbl">Sessions</div></div>
               <div class="stat-box"><div class="stat-val" id="st-prog">—</div><div class="stat-lbl">Progress</div></div>
             </div>
@@ -1707,19 +1707,34 @@ function backToGraphList() {
   document.getElementById('graph-detail').style.display='none';
 }
 
+// Calendar state for binary exercises
+let calendarMonth = null; // {year, month} currently displayed
+
 function showGraph(exName) {
   document.getElementById('graph-list-view').style.display='none';
   document.getElementById('graph-detail').style.display='block';
   document.getElementById('gd-name').textContent = exName;
-  document.getElementById('gd-sub').textContent  = 'Per set · hollow point = attempted weight';
+
+  const unit = exUnit(exName);
+  const binary = isBinary(exName);
+
+  if (binary) {
+    // Reset to current month
+    const now = new Date();
+    calendarMonth = {year: now.getFullYear(), month: now.getMonth()};
+    renderBinaryCalendar(exName);
+    return;
+  }
+
+  // Line chart for kg / reps / s
+  const unitLabel = exUnitLabel(exName);
+  document.getElementById('gd-sub').textContent = `Per set · ${unitLabel}`;
 
   const entries = getAllEntries(exName);
   const labels  = entries.map(e => fmtDate(e.date));
-
-  const s1vals = entries.map(e => e.s1);
-  const s2vals = entries.map(e => e.s2);
-  const s3vals = entries.map(e => e.s3);
-
+  const s1vals  = entries.map(e => e.s1);
+  const s2vals  = entries.map(e => e.s2);
+  const s3vals  = entries.map(e => e.s3);
   const c1='#5bb8f5', c2='#c5f135', c3='#f56b8b';
 
   function dataset(label, data, col) {
@@ -1727,8 +1742,7 @@ function showGraph(exName) {
       label, data,
       borderColor: col,
       backgroundColor: 'transparent',
-      fill: false,
-      tension: .35,
+      fill: false, tension: .35,
       pointRadius: 4,
       pointBackgroundColor: entries.map((e,i) => (data[i]!==null && e.isPartial) ? 'transparent' : col),
       pointBorderColor: col,
@@ -1738,6 +1752,12 @@ function showGraph(exName) {
   }
 
   if (chartInst) { chartInst.destroy(); chartInst=null; }
+
+  // Show/hide chart vs calendar
+  document.getElementById('main-chart').style.display = 'block';
+  const calEl = document.getElementById('binary-calendar');
+  if (calEl) calEl.style.display = 'none';
+  document.getElementById('stat-row-wrap').style.display = 'flex';
 
   chartInst = new Chart(document.getElementById('main-chart').getContext('2d'), {
     type: 'line',
@@ -1757,7 +1777,7 @@ function showGraph(exName) {
             label: (c) => {
               const v = c.parsed.y;
               if (v===null||v===undefined) return null;
-              return c.dataset.label+': '+v+' kg'+(entries[c.dataIndex].isPartial?' ◌':'');
+              return c.dataset.label+': '+v+' '+unitLabel+(entries[c.dataIndex].isPartial?' ◌':'');
             },
             afterBody: (items) => {
               const note = entries[items[0].dataIndex].note;
@@ -1768,7 +1788,7 @@ function showGraph(exName) {
       },
       scales: {
         x: { ticks:{color:'#666',font:{size:10},maxRotation:45,maxTicksLimit:8}, grid:{color:'rgba(255,255,255,.05)'} },
-        y: { ticks:{color:'#666',font:{size:10}}, grid:{color:'rgba(255,255,255,.05)'} }
+        y: { ticks:{color:'#666',font:{size:10},callback: v => v+' '+unitLabel}, grid:{color:'rgba(255,255,255,.05)'} }
       }
     }
   });
@@ -1777,10 +1797,98 @@ function showGraph(exName) {
   const lastS3  = s3vals.filter(v=>v!==null);
   const firstS3 = s3vals.find(v=>v!==null);
   const prog = (lastS3.length>1&&firstS3) ? Math.round((lastS3[lastS3.length-1]-firstS3)/firstS3*100) : null;
-  document.getElementById('st-max').textContent  = allVals.length ? Math.max(...allVals)+' kg':'—';
-  document.getElementById('st-min').textContent  = allVals.length ? Math.min(...allVals)+' kg':'—';
-  document.getElementById('st-sess').textContent = entries.length||'—';
-  document.getElementById('st-prog').textContent = prog!==null?(prog>0?'+':'')+prog+'% (S3)':'—';
+  document.getElementById('st-max').textContent = allVals.length ? Math.max(...allVals)+' '+unitLabel : '—';
+  document.getElementById('st-min').textContent = allVals.length ? Math.min(...allVals)+' '+unitLabel : '—';
+  document.getElementById('st-sess').textContent = entries.length || '—';
+  document.getElementById('st-prog').textContent = prog!==null ? (prog>=0?'+':'')+prog+'%' : '—';
+}
+
+function renderBinaryCalendar(exName) {
+  // Hide chart, show calendar
+  document.getElementById('main-chart').style.display = 'none';
+  document.getElementById('stat-row-wrap').style.display = 'none';
+
+  // Get all dates this exercise was done
+  const lc = exName.toLowerCase();
+  const doneDates = new Set(
+    sessionRows
+      .filter(r => r[3] && r[3].toLowerCase()===lc)
+      .filter(r => {
+        const sets = rowSets(r);
+        return sets.some(s => s && s.toLowerCase()==='yes');
+      })
+      .map(r => r[1])
+  );
+
+  const {year, month} = calendarMonth;
+  const monthName = new Date(year, month, 1).toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const firstDow = new Date(year, month, 1).getDay(); // 0=Sun
+  const startOffset = (firstDow === 0 ? 6 : firstDow - 1); // Mon=0
+
+  const today = new Date().toISOString().slice(0,10);
+  const totalDone = doneDates.size;
+
+  // Build calendar HTML
+  const dayLabels = ['M','T','W','T','F','S','S'];
+  const headerCells = dayLabels.map(d =>
+    `<div style="text-align:center;font-size:10px;color:var(--t3);font-weight:600;padding-bottom:4px">${d}</div>`
+  ).join('');
+
+  // Empty cells before month start
+  let cells = '';
+  for (let i=0; i<startOffset; i++) cells += `<div></div>`;
+
+  for (let d=1; d<=daysInMonth; d++) {
+    const iso = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const done = doneDates.has(iso);
+    const isToday = iso === today;
+    const bg    = done ? 'var(--ac)' : 'var(--s2)';
+    const col   = done ? '#111' : (isToday ? 'var(--t1)' : 'var(--t3)');
+    const border = isToday ? '1px solid var(--t2)' : '1px solid transparent';
+    cells += `
+      <div style="aspect-ratio:1;border-radius:50%;background:${bg};border:${border};
+        display:flex;align-items:center;justify-content:center;
+        font-size:11px;font-family:var(--mono);color:${col}">
+        ${d}
+      </div>`;
+  }
+
+  // Show/hide nav buttons
+  const now = new Date();
+  const canGoForward = year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth());
+
+  let calEl = document.getElementById('binary-calendar');
+  if (!calEl) {
+    calEl = document.createElement('div');
+    calEl.id = 'binary-calendar';
+    document.getElementById('main-chart').parentNode.insertBefore(calEl, document.getElementById('main-chart'));
+  }
+  calEl.style.display = 'block';
+  document.getElementById('gd-sub').textContent = `${totalDone} session${totalDone!==1?'s':''} total`;
+
+  calEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <button onclick="shiftCalendar('${exName}',-1)"
+        style="background:none;border:1px solid var(--b2);color:var(--t2);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:14px">‹</button>
+      <div style="font-family:var(--sans);font-size:13px;font-weight:600;color:var(--t1);text-transform:capitalize">${monthName}</div>
+      <button onclick="shiftCalendar('${exName}',1)" ${!canGoForward?'disabled style="opacity:.3"':'style="cursor:pointer"'}
+        style="background:none;border:1px solid var(--b2);color:var(--t2);padding:5px 12px;border-radius:6px;font-size:14px">›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">
+      ${headerCells}
+      ${cells}
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--t3);text-align:center">
+      ${doneDates.size > 0 ? [...doneDates].filter(d => d.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)).length : 0} times this month
+    </div>`;
+}
+
+function shiftCalendar(exName, delta) {
+  calendarMonth.month += delta;
+  if (calendarMonth.month > 11) { calendarMonth.month = 0; calendarMonth.year++; }
+  if (calendarMonth.month < 0)  { calendarMonth.month = 11; calendarMonth.year--; }
+  renderBinaryCalendar(exName);
 }
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
