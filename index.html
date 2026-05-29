@@ -377,7 +377,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
     <div class="sheet-section">
       <div class="sheet-sec-lbl">New exercise</div>
       <div class="new-ex-row">
-        <input class="new-ex-in" id="new-ex-name" placeholder="Exercise name…">
+        <input class="new-ex-in" id="new-ex-name" placeholder="Exercise name…" style="flex:2">
+        <select id="new-ex-unit" style="padding:10px 8px;background:var(--s2);border:1px solid var(--b1);color:var(--t2);font-family:var(--mono);font-size:12px;border-radius:8px;cursor:pointer">
+          <option value="kg">kg</option>
+          <option value="reps">reps</option>
+          <option value="s">sec</option>
+          <option value="binary">yes/no</option>
+        </select>
         <button class="new-ex-add" onclick="addNewExercise()">Add</button>
       </div>
     </div>
@@ -613,24 +619,32 @@ function _sync(s,m) {
 }
 
 // ── EXERCISE CONFIG ───────────────────────────────────────────────────────────
-// Special exercise configs: defaultSets count, binary (yes/no instead of kg)
-const EX_CONFIG = {
-  'hip raise':     { defaultSets: 4 },
-  'hip raise(8x4)':{ defaultSets: 4 },
-  'ab finisher':   { binary: true },
-  'ab wheel':      { repsOnly: true },
-  'ab wheel rollout': { repsOnly: true },
-};
-function exConfig(name) {
-  return EX_CONFIG[name.toLowerCase().trim()] || {};
+// Exercise unit: read from exercises sheet (muscleData), fallback to 'kg'
+// Units: 'kg' (weight), 'reps' (count), 's' (duration/seconds)
+function exUnit(name) {
+  const lc = name.toLowerCase().trim();
+  // Hip raise is always reps
+  if (lc === 'hip raise' || lc === 'hip raise(8x4)') return 'reps';
+  const d = muscleData[lc];
+  return d ? (d.unit || 'kg') : 'kg';
 }
-function defaultSetCount(name) { return exConfig(name).defaultSets || 3; }
-function isRepsOnly(name) { return !!(exConfig(name).repsOnly); }
+function defaultSetCount(name) {
+  const lc = name.toLowerCase().trim();
+  if (lc === 'hip raise' || lc === 'hip raise(8x4)') return 4;
+  return 3;
+}
+function isRepsOnly(name) { const u = exUnit(name); return u === 'reps' || u === 's'; }
 function isBinary(name) {
-  if (exConfig(name).binary) return true;
-  // All F-day exercises are binary (done/not done)
+  if (name.toLowerCase().trim() === 'ab finisher') return true;
+  if (exUnit(name) === 'binary') return true;
   if (curDay === 'df') return true;
   return false;
+}
+function exUnitLabel(name) {
+  const u = exUnit(name);
+  if (u === 'reps') return 'reps';
+  if (u === 's') return 'sec';
+  return 'kg';
 }
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
@@ -643,7 +657,7 @@ async function loadAll() {
       apiGet('d2!A:A').catch(e => { throw new Error('d2: '+e.message); }),
       apiGet('d3!A:A').catch(e => { throw new Error('d3: '+e.message); }),
       apiGet('df!A:A').catch(() => []),
-      apiGet('exercises!A:K').catch(() => []),
+      apiGet('exercises!A:L').catch(() => []),
       apiGet('runs!A:E').catch(() => []),
       apiGet('running_weeks!A:D').catch(() => []),
     ]);
@@ -861,12 +875,12 @@ function renderExCard(name, container) {
     const setsHTML = st.sets.map((v,i) => `
       <div class="set-wrap">
         <div class="set-n">Set ${i+1}</div>
-        <input class="set-in${v?' filled':''}" type="${repsOnly?'number':'text'}"
-          id="si-${eid(name)}-${i}" value="${esc(v)}" placeholder="${repsOnly?'0':'—'}"
+        <input class="set-in${v?' filled':''}" type="${isRepsOnly(name)?'number':'text'}"
+          id="si-${eid(name)}-${i}" value="${esc(v)}" placeholder="${isRepsOnly(name)?'0':'—'}"
           data-idx="${i}">
       </div>`).join('');
     bodyHTML = `
-      <div class="sets-lbl">Today's sets (${repsOnly ? 'reps' : 'kg'})</div>
+      <div class="sets-lbl">Today's sets (${exUnitLabel(name)})</div>
       <div class="sets-g" id="sets-g-${eid(name)}">${setsHTML}</div>
       <div style="display:flex;gap:6px;margin-bottom:10px">
         <button class="set-ctrl-btn" data-action="add">+ set</button>
@@ -1135,15 +1149,16 @@ function renderSheetExList(q) {
 
 async function addNewExercise() {
   const name = document.getElementById('new-ex-name').value.trim();
+  const unit = document.getElementById('new-ex-unit').value;
   if (!name) return;
-  await addExToDay(name);
+  await addExToDay(name, unit);
 }
 
 async function addExFromOtherDay(name) {
   await addExToDay(name);
 }
 
-async function addExToDay(name) {
+async function addExToDay(name, unit='kg') {
   const lc = name.toLowerCase();
   if (dayLists[curDay].some(n => n.toLowerCase()===lc)) {
     hideAddSheet(); openCard = name; renderLog(); return;
@@ -1152,12 +1167,12 @@ async function addExToDay(name) {
   try {
     await apiAppend(`${curDay}!A:A`, [[name]]);
     dayLists[curDay].push(name);
-    // If not in exercises sheet, add placeholder row with equal scores
+    // If not in exercises sheet, add placeholder row with equal scores + unit
     if (!muscleData[lc] && muscleGroups.length) {
       const score = Math.round(100 / muscleGroups.length);
-      const row = [name, ...muscleGroups.map(() => score)];
-      await apiAppend('exercises!A:K', [row]).catch(()=>{}); // silent fail
-      muscleData[lc] = {name, scores: muscleGroups.map(()=>score), total: score*muscleGroups.length, unknown:true};
+      const row = [name, ...muscleGroups.map(() => score), unit];
+      await apiAppend('exercises!A:L', [row]).catch(()=>{});
+      muscleData[lc] = {name, scores: muscleGroups.map(()=>score), total: score*muscleGroups.length, unit, unknown:true};
     }
     setSyncOk('Added ✓');
     hideAddSheet();
@@ -1178,16 +1193,21 @@ function parseExerciseSheet(rows) {
   muscleData   = {};
   muscleGroups = [];
   if (!rows || rows.length < 2) return;
-  // Row 0: [exercise, Quads, Hamstrings, ...]
+  // Row 0: [exercise, Quads, ..., Core, unit]
   const header = rows[0];
-  muscleGroups = header.slice(1).map(h => (h||'').toString().trim()).filter(Boolean);
+  // Find 'unit' column index (may or may not exist)
+  const unitColIdx = header.findIndex(h => h && h.toString().toLowerCase().trim() === 'unit');
+  // Muscle group columns = all between exercise and unit (or end)
+  const scoreEnd = unitColIdx > 0 ? unitColIdx : header.length;
+  muscleGroups = header.slice(1, scoreEnd).map(h => (h||'').toString().trim()).filter(Boolean);
   rows.slice(1).forEach(r => {
     if (!r || !r[0]) return;
     const name = r[0].toString().trim();
     if (!name) return;
     const scores = muscleGroups.map((_, i) => parseFloat(r[i+1]) || 0);
     const total  = scores.reduce((a,b)=>a+b,0);
-    muscleData[name.toLowerCase()] = { name, scores, total };
+    const unit   = unitColIdx > 0 ? (r[unitColIdx]||'').toString().trim().toLowerCase() : 'kg';
+    muscleData[name.toLowerCase()] = { name, scores, total, unit: unit||'kg' };
   });
 }
 
@@ -1338,7 +1358,7 @@ function renderModalBody() {
           <div class="modal-ex-nm">${ex.name}</div>
           ${ex.day?`<span class="sess-tag ${ex.day}" style="font-size:9px;padding:1px 6px">${ex.day.toUpperCase()}</span>`:''}
         </div>
-        <div class="modal-ex-sets">${ex.sets.filter(Boolean).join(' · ')}${ex.sets.some(Boolean)?(isRepsOnly(ex.name)?' reps':' kg'):''}</div>
+        <div class="modal-ex-sets">${ex.sets.filter(Boolean).join(' · ')}${ex.sets.some(Boolean)?(' '+exUnitLabel(ex.name)):''}</div>
         ${ex.excluded?'<div style="font-size:10px;color:var(--t3)">🚫 excluded from graph</div>':''}
         ${ex.note?`<div class="modal-ex-note">${ex.note}</div>`:''}
       </div>
@@ -2574,7 +2594,17 @@ function renderRunHeatmap() {
     const plan    = planMap[w];
     const total   = d.r1 + d.r2 + d.r3;
     const target  = plan ? plan.target_km : 0;
-    const wtype   = plan ? plan.week_type : '';
+    // Derive week type: from plan if available, else from majority week_type in runs for that week
+    let wtype = plan ? plan.week_type : '';
+    if (!wtype) {
+      const weekRuns = runRows.filter(r => weekMonday(r.date) === w);
+      if (weekRuns.length) {
+        // Use most common week_type among runs that week
+        const freq = {};
+        weekRuns.forEach(r => { freq[r.week_type] = (freq[r.week_type]||0)+1; });
+        wtype = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0][0];
+      }
+    }
     const isCur   = w === todayMon;
     const isFut   = w > todayMon;
     const wtCol   = WTYPE_COLORS[wtype] || 'var(--t3)';
