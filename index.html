@@ -243,12 +243,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
       <button onclick="reconnect()" style="padding:6px 14px;border:none;background:#f56b8b;color:#111;font-family:var(--sans);font-size:12px;font-weight:700;border-radius:6px;cursor:pointer">Reconnect</button>
     </div>
 
+    <!-- MODE SWITCHER — always visible above Log/Sessions/Progress -->
+    <div id="mode-switcher" style="display:flex;gap:6px;margin-bottom:12px">
+      <button id="mode-lift" onclick="switchMode('lift')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">🥦 Lift</button>
+      <button id="mode-run"  onclick="switchMode('run')"  style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">🏃 Run</button>
+    </div>
+
     <div id="view-log">
-      <!-- MODE SWITCHER -->
-      <div id="mode-switcher" style="display:flex;gap:6px;margin-bottom:12px">
-        <button id="mode-lift" onclick="switchMode('lift')" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">🥦 Lift</button>
-        <button id="mode-run"  onclick="switchMode('run')"  style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:20px;border:1px solid var(--b2);background:none;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">🏃 Run</button>
-      </div>
       <!-- LIFT LOG -->
       <div id="lift-log">
         <div class="day-row">
@@ -322,13 +323,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:18p
     </div>
 
     <div id="view-graph" style="display:none">
-      <!-- Progress sub-tabs -->
-      <div style="display:flex;gap:4px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:3px;margin-bottom:14px">
+      <!-- LIFT Progress sub-tabs -->
+      <div id="progress-tabs-lift" style="display:flex;gap:4px;background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:3px;margin-bottom:14px">
         <button class="tab-btn active" id="ptab-exercises" onclick="switchProgressTab('exercises')">Exercises</button>
         <button class="tab-btn" id="ptab-muscles" onclick="switchProgressTab('muscles')">Coverage</button>
         <button class="tab-btn" id="ptab-load" onclick="switchProgressTab('load')">Load</button>
-        <button class="tab-btn" id="ptab-run" onclick="switchProgressTab('run')" style="display:none">Running</button>
       </div>
+      <!-- RUN Progress sub-tabs (no tab bar needed, single view, kept simple) -->
+      <div id="progress-tabs-run" style="display:none"></div>
       <!-- Exercises sub-view -->
       <div id="progress-exercises">
         <div id="graph-list-view">
@@ -1903,12 +1905,10 @@ function switchView(v) {
   });
   if (v==='sessions') renderSessions();
   if (v==='graph') {
-    renderGraphList();
     if (curMode==='run') {
-      const runTab = document.getElementById('ptab-run');
-      if (runTab) runTab.style.display = '';
       switchProgressTab('run');
     } else {
+      renderGraphList();
       switchProgressTab('exercises');
     }
   }
@@ -2372,12 +2372,18 @@ function applyMode(mode, rerender) {
   if (liftSess) liftSess.style.display = mode==='lift' ? 'block' : 'none';
   if (runSess)  runSess.style.display  = mode==='run'  ? 'block' : 'none';
 
-  // Progress tab
-  const runTab = document.getElementById('ptab-run');
-  if (runTab) runTab.style.display = mode==='run' ? '' : 'none';
-  if (mode==='lift' && curView==='graph') {
-    const rp = document.getElementById('progress-run');
-    if (rp && rp.style.display !== 'none') switchProgressTab('exercises');
+  // Progress tab — fully separate tab groups + content per mode
+  const tabsLift = document.getElementById('progress-tabs-lift');
+  const tabsRun  = document.getElementById('progress-tabs-run');
+  if (tabsLift) tabsLift.style.display = mode==='lift' ? 'flex' : 'none';
+  if (tabsRun)  tabsRun.style.display  = mode==='run'  ? 'flex' : 'none';
+
+  if (curView === 'graph') {
+    if (mode === 'lift') {
+      switchProgressTab('exercises');
+    } else {
+      switchProgressTab('run');
+    }
   }
 
   if (mode==='run' && rerender) {
@@ -2611,7 +2617,7 @@ function naturalProgressionTarget(targetWeek, allWeeksSorted) {
 // Six-week mean: each of the last 6 completed weeks (before targetWeek) "votes"
 // by projecting its own actual km forward through the real formula chain to the
 // target week. Average the votes.
-function sixWeekMeanTarget(targetWeek, allWeeksSorted, includeS) {
+function sixWeekMeanTarget(targetWeek, allWeeksSorted, includeS, ignoreWeekStart) {
   const idx = allWeeksSorted.findIndex(w => w.week_start === targetWeek.week_start);
   if (idx <= 0) return targetWeek.target_km;
 
@@ -2621,6 +2627,7 @@ function sixWeekMeanTarget(targetWeek, allWeeksSorted, includeS) {
   const votes = [];
   candidateIdxs.forEach(i => {
     const w = allWeeksSorted[i];
+    if (ignoreWeekStart && w.week_start === ignoreWeekStart) return; // explicitly excluded (e.g. incomplete current week)
     if (!w.km_real) return;
     if (w.week_type === 'S') {
       if (includeS) votes.push(w.km_real); // S weeks vote with their own raw value, unprojected
@@ -2676,9 +2683,10 @@ async function updateRunTargets() {
   try {
     const allSorted = [...runWeeks].sort((a,b)=>a.week_start.localeCompare(b.week_start));
 
-    // Step 1: sync km_real for all past weeks
+    // Step 1: sync km_real for all weeks up to AND INCLUDING this week
+    // (current week's actual-so-far must be live so projections from it are accurate)
     for (const w of allSorted) {
-      if (w.week_start >= todayMon) continue;
+      if (w.week_start > todayMon) continue;
       const actual = Math.round(
         runRows.filter(r => weekMonday(r.date) === w.week_start)
                .reduce((s,r)=>s+r.km,0) * 10
@@ -2689,12 +2697,13 @@ async function updateRunTargets() {
       }
     }
 
-    // Step 2: find next upcoming non-S week (the one we're predicting)
-    const nextWeek = allSorted.find(w => w.week_start >= todayMon && w.week_type !== 'S');
+    // Step 2: find the NEXT week (strictly after today) to predict
+    const nextWeek = allSorted.find(w => w.week_start > todayMon && w.week_type !== 'S');
     if (!nextWeek) { setSyncOk('No upcoming training week found'); return; }
 
     // Step 3: six-week-mean vote (default behaviour for the main Update button)
-    const newTarget = sixWeekMeanTarget(nextWeek, allSorted, true);
+    const ignoreCurrent = document.getElementById('ignore-current-week')?.checked;
+    const newTarget = sixWeekMeanTarget(nextWeek, allSorted, true, ignoreCurrent ? todayMon : null);
 
     // Step 4: propagate forward from this anchor through the rest of the plan
     propagateFromAnchor(nextWeek, newTarget, allSorted);
@@ -2722,6 +2731,19 @@ function openManualUpdate(weekStart) {
   if (!w) return;
   manualUpdateWeek = w;
 
+  // Live-sync km_real (in memory only) for all weeks up to and including today,
+  // so projections always reflect what's actually logged so far — no stale data,
+  // even if "Update targets" hasn't been pressed recently.
+  const todayMon = weekMonday(new Date().toISOString().slice(0,10));
+  runWeeks.forEach(rw => {
+    if (rw.week_start > todayMon) return;
+    const actual = Math.round(
+      runRows.filter(r => weekMonday(r.date) === rw.week_start)
+             .reduce((s,r)=>s+r.km,0) * 10
+    ) / 10;
+    rw.km_real = actual;
+  });
+
   const allSorted = [...runWeeks].sort((a,b)=>a.week_start.localeCompare(b.week_start));
   const natural = naturalProgressionTarget(w, allSorted);
   const sixWkIncl = sixWeekMeanTarget(w, allSorted, true);
@@ -2733,7 +2755,7 @@ function openManualUpdate(weekStart) {
     <div style="display:flex;flex-direction:column;gap:10px">
       <button onclick="applyManualTarget(${natural})" class="manual-opt-btn">
         <div style="font-weight:700;color:var(--t1)">Natural progression</div>
-        <div style="font-size:11px;color:var(--t3);margin-top:2px">From the previous training week's cycle formula</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">From the immediately preceding week's actual km</div>
         <div style="font-family:var(--mono);font-size:16px;color:var(--ac);margin-top:6px">${natural.toFixed(1)} km</div>
       </button>
       <button onclick="applyManualTarget(${sixWkIncl})" class="manual-opt-btn">
@@ -2913,6 +2935,10 @@ function renderRunHeatmap() {
         <div class="heatmap-ttl">Weekly distance</div>
         <button onclick="updateRunTargets()" style="padding:5px 12px;border:1px solid var(--ac);background:none;color:var(--ac);font-family:var(--mono);font-size:11px;border-radius:6px;cursor:pointer">Update targets ↻</button>
       </div>
+      <label style="display:flex;align-items:center;gap:6px;margin:6px 0 2px;cursor:pointer">
+        <input type="checkbox" id="ignore-current-week" style="width:14px;height:14px;cursor:pointer">
+        <span style="font-size:11px;color:var(--t3)">Ignore current week (incomplete) when voting</span>
+      </label>
       <div class="heatmap-sub">Tap a week's badge to manually set its target · line = target</div>
       <div style="display:flex;gap:12px;margin:10px 0 14px">
         <div class="stat-box" style="flex:1"><div class="stat-val" style="color:#5bb8f5">${totalKm.toFixed(1)}</div><div class="stat-lbl">Total km</div></div>
