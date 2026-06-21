@@ -2598,17 +2598,14 @@ function projectWeekForward(allWeeksSorted, fromIdx, toIdx) {
 }
 
 // Natural progression: derive target purely from the cycle formula relative to
-// the most recent non-S week with real km (single nearest-predecessor projection).
+// the SINGLE immediately preceding week (no searching further back).
 function naturalProgressionTarget(targetWeek, allWeeksSorted) {
   const idx = allWeeksSorted.findIndex(w => w.week_start === targetWeek.week_start);
   if (idx <= 0) return targetWeek.target_km;
-  for (let i = idx - 1; i >= 0; i--) {
-    const w = allWeeksSorted[i];
-    if (w.week_type === 'S' || !w.km_real) continue;
-    const proj = projectWeekForward(allWeeksSorted, i, idx);
-    if (proj !== null) return proj;
-  }
-  return targetWeek.target_km;
+  const prev = allWeeksSorted[idx - 1];
+  if (prev.week_type === 'S' || !prev.km_real) return targetWeek.target_km;
+  const proj = projectWeekForward(allWeeksSorted, idx - 1, idx);
+  return proj !== null ? proj : targetWeek.target_km;
 }
 
 // Six-week mean: each of the last 6 completed weeks (before targetWeek) "votes"
@@ -2868,9 +2865,9 @@ function renderRunHeatmap() {
     // Target line position
     const tgtPct = target > 0 ? Math.round(target/maxKm*100) : 0;
 
-    // Week type badge — clickable to open manual update
+    // Week type badge — compact, click opens manual update
     const badge = wtype
-      ? `<span onclick="openManualUpdate('${w}')" style="cursor:pointer;font-size:9px;font-weight:700;color:${wtCol};border:1px solid ${wtCol};border-radius:4px;padding:1px 5px;margin-left:5px">${wtype} ✎</span>`
+      ? `<span onclick="openManualUpdate('${w}')" style="cursor:pointer;font-size:9px;font-weight:700;color:${wtCol};border:1px solid ${wtCol};border-radius:4px;padding:1px 4px;white-space:nowrap">${wtype}</span>`
       : '';
 
     // Total label
@@ -2879,8 +2876,9 @@ function renderRunHeatmap() {
 
     return `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
-        <div style="width:80px;flex-shrink:0">
-          <div style="font-size:10px;color:${labelCol};font-weight:${isCur?700:400}">${label}${badge}</div>
+        <div style="width:96px;flex-shrink:0;display:flex;align-items:center;gap:5px">
+          <span style="font-size:10px;color:${labelCol};font-weight:${isCur?700:400};white-space:nowrap">${label}</span>
+          ${badge}
         </div>
         <div style="flex:1;position:relative;height:${TRACK_H}px;background:var(--s2);border-radius:5px;overflow:visible">
           <!-- Stacked bars -->
